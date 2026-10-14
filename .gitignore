@@ -45,3 +45,7 @@ app.*.map.json
 /android/app/release
 .claude/verify.log
 .claude/settings.local.json
+
+# Agent skills: installed locally, sources recorded in skills-lock.json
+.agents/
+.claude/skills/
