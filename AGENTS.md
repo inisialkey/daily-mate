@@ -86,7 +86,9 @@ end of any turn that edited a file. Fix the cause; never weaken the check to pas
 - macOS 26 masks every app icon to its own 824 px squircle, so whatever lies outside the
   artwork's rounder corners shows as slivers (white where transparent). `app_icon_1024.png`
   is the artwork scaled until its body covers that shape (860 px) and clipped to it.
-  `NSWorkspace.shared.icon(forFile:)` returns what the Dock draws. The asset catalog drops
+  `NSWorkspace.shared.icon(forFile:)` returns what the Dock draws. Alerts keep the old icon
+  until `killall NotificationCenter usernoted`, and stale copies in `build/` must go, since
+  they share the bundle id. The asset catalog drops
   dark/tinted icon variants on macOS (they need an Icon Composer `.icon`), so the
   monochrome artwork is unused.
 
