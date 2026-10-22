@@ -60,6 +60,7 @@ class _DailyMateAppState extends State<DailyMateApp> {
     );
     WindowChannel.listen(
       onOpenSettings: () => _router.go(AppDestination.settings.path),
+      onOpen: _router.go,
     );
     _openRequests = _sync.openRequests.listen(_open);
     final launchedFrom = _sync.pendingOpen;

@@ -20,6 +20,9 @@ Future<AppDatabase> pumpApp(
   /// Runs against the database before the app is built — the only moment
   /// no query is in flight, so it can never wait on Drift's lock.
   Future<void> Function()? seed,
+
+  /// Pumped instead of the main app, e.g. the menu bar popover.
+  Widget? app,
 }) async {
   tester.view
     ..physicalSize = size
@@ -38,7 +41,7 @@ Future<AppDatabase> pumpApp(
     await seed?.call();
     return sl<SettingsRepository>().load();
   });
-  await tester.pumpWidget(DailyMateApp(initialSettings: settings!));
+  await tester.pumpWidget(app ?? DailyMateApp(initialSettings: settings!));
   await tester.pumpAndSettle();
   // Let queries started in the fake-async zone finish: a test that then
   // touches the database via `runAsync` would otherwise wait on Drift's

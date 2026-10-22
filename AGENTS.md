@@ -25,9 +25,11 @@ end of any turn that edited a file. Fix the cause; never weaken the check to pas
      Read it at the start of a session, update it before you stop. Outgrow it —
      more than a few lines, or two agents writing it at once — and it moves to
      its own PROGRESS.md. Not before. -->
-- Done: Milestones 1–7 (`docs/PLAN.md`). 1.0.0 release built and installed to
-  `/Applications/DailyMate.app` with `scripts/install.sh` (2026-10-14).
-- Last green at: the first commit, "DailyMate 1.0.0" (teal app icon), 176 tests (2026-10-14)
+- Done: Milestones 1–7 (`docs/PLAN.md`), plus a menu bar extra in 1.1.0: a
+  non-activating panel (quick add, today's tasks, next prayer) run by a second
+  Flutter engine (`menuBarMain`) that shares the drift database isolate.
+  Installed to `/Applications/DailyMate.app` with `scripts/install.sh` (2026-10-22).
+- Last green at: "Add a menu bar panel", 179 tests (2026-10-22)
 - Blocked by: —
 
 ## Commands the agent cannot guess
