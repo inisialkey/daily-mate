@@ -75,6 +75,11 @@ class MainFlutterWindow: NSWindow {
     item.action = #selector(openSettings(_:))
   }
 
+  /// Shows a route picked in the menu bar popover.
+  func open(_ path: String) {
+    channel?.invokeMethod("open", arguments: path)
+  }
+
   @objc func openSettings(_ sender: Any?) {
     makeKeyAndOrderFront(nil)
     channel?.invokeMethod("openSettings", arguments: nil)

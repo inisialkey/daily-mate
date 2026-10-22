@@ -32,12 +32,14 @@ class AppDatabase extends _$AppDatabase {
 
   /// The on-disk database in the app's Application Support directory —
   /// never inside the app bundle, so replacing the app keeps the data.
-  /// Queries run on a background isolate.
+  /// Queries run on a background isolate, shared with the menu bar
+  /// popover's engine so a write in either shows up in both.
   factory AppDatabase.open() => AppDatabase(
     driftDatabase(
       name: fileName,
       native: const DriftNativeOptions(
         databaseDirectory: getApplicationSupportDirectory,
+        shareAcrossIsolates: true,
       ),
     ),
   );

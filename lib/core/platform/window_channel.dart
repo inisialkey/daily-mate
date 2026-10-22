@@ -22,9 +22,18 @@ abstract final class WindowChannel {
   static Future<void> revealInFinder(String path) =>
       _invoke('revealInFinder', path);
 
-  static void listen({required VoidCallback onOpenSettings}) {
+  /// [onOpen] receives a route path picked in the menu bar popover.
+  static void listen({
+    required VoidCallback onOpenSettings,
+    required ValueChanged<String> onOpen,
+  }) {
     _channel.setMethodCallHandler((call) async {
-      if (call.method == 'openSettings') onOpenSettings();
+      switch (call.method) {
+        case 'openSettings':
+          onOpenSettings();
+        case 'open':
+          onOpen(call.arguments as String);
+      }
     });
   }
 
