@@ -107,11 +107,22 @@ final class MenuBar: NSObject, NSWindowDelegate {
 
     let channel = FlutterMethodChannel(name: "dailymate/menu_bar", binaryMessenger: engine.binaryMessenger)
     channel.setMethodCallHandler { [weak self] call, result in
-      if call.method == "open", let path = call.arguments as? String {
-        self?.hide()
-        self?.openInApp(path)
+      switch call.method {
+      case "open":
+        if let path = call.arguments as? String {
+          self?.hide()
+          self?.openInApp(path)
+        }
+        result(nil)
+      case "isRunning":
+        let id = call.arguments as? String ?? ""
+        result(!NSRunningApplication.runningApplications(withBundleIdentifier: id).isEmpty)
+      case "pressMediaKey":
+        Self.pressMediaKey(call.arguments as? String)
+        result(nil)
+      default:
+        result(FlutterMethodNotImplemented)
       }
-      result(nil)
     }
     self.engine = engine
     self.channel = channel
@@ -138,6 +149,26 @@ final class MenuBar: NSObject, NSWindowDelegate {
     panel.delegate = self
     panel.onCancel = { [weak self] in self?.hide() }
     return panel
+  }
+
+  /// Presses a media key like F7–F9 do; the Now Playing app takes it.
+  /// Posting events needs Privacy & Security > Accessibility, which the
+  /// first press asks for.
+  private static func pressMediaKey(_ name: String?) {
+    // NX_KEYTYPE_PLAY, _NEXT and _PREVIOUS from IOKit's ev_keymap.h.
+    guard let key = ["playPause": 16, "next": 17, "previous": 18][name ?? ""] else { return }
+    guard CGPreflightPostEventAccess() else {
+      CGRequestPostEventAccess()
+      return
+    }
+    for down in [true, false] {
+      let event = NSEvent.otherEvent(
+        with: .systemDefined, location: .zero,
+        modifierFlags: NSEvent.ModifierFlags(rawValue: down ? 0xa00 : 0xb00),
+        timestamp: 0, windowNumber: 0, context: nil, subtype: 8,
+        data1: key << 16 | (down ? 0xa : 0xb) << 8, data2: -1)
+      event?.cgEvent?.post(tap: .cghidEventTap)
+    }
   }
 
   // A click anywhere else, ⌘Tab or opening the main window closes it.

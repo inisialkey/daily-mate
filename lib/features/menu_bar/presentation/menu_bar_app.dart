@@ -11,6 +11,7 @@ import 'package:daily_mate/core/ui/action_runner.dart';
 import 'package:daily_mate/core/ui/formatting.dart';
 import 'package:daily_mate/core/ui/widgets/empty_state.dart';
 import 'package:daily_mate/core/ui/widgets/section_header.dart';
+import 'package:daily_mate/features/music/domain/music_player.dart';
 import 'package:daily_mate/features/prayer/presentation/cubit/prayer_cubit.dart';
 import 'package:daily_mate/features/prayer/presentation/widgets/next_prayer_card.dart';
 import 'package:daily_mate/features/tasks/domain/task.dart';
@@ -22,7 +23,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-/// The menu bar popover: quick add, today's tasks and the next prayer. Its
+/// The menu bar popover: quick add, today's tasks, the next prayer and the
+/// music that plays. Its
 /// own engine runs it beside the main window (`bootstrapMenuBar`). Like
 /// every menu bar extra it follows the system appearance and draws on the
 /// popover's translucent material.
@@ -77,6 +79,7 @@ class _MenuBarPage extends StatelessWidget {
                 _QuickAddField(today: today),
                 const SizedBox(height: Space.md),
                 const _NextPrayer(),
+                const _NowPlaying(),
                 if (overdue.isEmpty && dueToday.isEmpty)
                   const EmptyState(
                     compact: true,
@@ -211,6 +214,101 @@ class _NextPrayer extends StatelessWidget {
         label: const Text('Set a location for prayer times'),
       ),
       _ => const SizedBox.shrink(),
+    },
+  );
+}
+
+/// Track and media keys of the music app; hidden while it is not running.
+class _NowPlaying extends StatefulWidget {
+  const _NowPlaying();
+
+  @override
+  State<_NowPlaying> createState() => _NowPlayingState();
+}
+
+class _NowPlayingState extends State<_NowPlaying> {
+  final MusicPlayer _player = sl();
+  late final Stream<NowPlaying?> _track = _player.watchNowPlaying();
+
+  @override
+  Widget build(BuildContext context) => StreamBuilder(
+    stream: _track,
+    builder: (context, snapshot) {
+      final track = snapshot.data;
+      if (track == null) return const SizedBox.shrink();
+      final artworkUrl = track.artworkUrl;
+      final placeholder = Icon(
+        CupertinoIcons.music_note,
+        size: IconSizes.lg,
+        color: context.palette.textMuted,
+      );
+      Widget key(MediaCommand command, IconData icon, String tooltip) =>
+          IconButton(
+            onPressed: () => unawaited(_player.send(command)),
+            icon: Icon(icon, size: IconSizes.lg),
+            tooltip: tooltip,
+            visualDensity: VisualDensity.compact,
+          );
+      return Container(
+        margin: const EdgeInsets.only(top: Space.sm),
+        padding: const EdgeInsets.all(Space.sm),
+        decoration: BoxDecoration(
+          color: context.colors.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(Radii.lg),
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(Radii.sm),
+              child: SizedBox.square(
+                dimension: Space.xxxl,
+                child: artworkUrl == null
+                    ? placeholder
+                    : Image.network(
+                        artworkUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => placeholder,
+                      ),
+              ),
+            ),
+            const SizedBox(width: Space.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    track.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.text.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (track.artist.isNotEmpty)
+                    Text(
+                      track.artist,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.text.bodySmall?.copyWith(
+                        color: context.palette.textMuted,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            key(
+              MediaCommand.previous,
+              CupertinoIcons.backward_end_fill,
+              'Previous',
+            ),
+            if (track.playing)
+              key(MediaCommand.playPause, CupertinoIcons.pause_fill, 'Pause')
+            else
+              key(MediaCommand.playPause, CupertinoIcons.play_fill, 'Play'),
+            key(MediaCommand.next, CupertinoIcons.forward_end_fill, 'Next'),
+          ],
+        ),
+      );
     },
   );
 }

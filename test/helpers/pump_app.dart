@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'fake_location_service.dart';
+import 'fake_music_player.dart';
 import 'fake_notification_scheduler.dart';
 import 'static_app_clock.dart';
 import 'test_database.dart';
@@ -16,6 +17,7 @@ Future<AppDatabase> pumpApp(
   Size size = const Size(1400, 900),
   FakeNotificationScheduler? scheduler,
   FakeLocationService? location,
+  FakeMusicPlayer? music,
 
   /// Runs against the database before the app is built — the only moment
   /// no query is in flight, so it can never wait on Drift's lock.
@@ -35,6 +37,7 @@ Future<AppDatabase> pumpApp(
     appClock: StaticAppClock(),
     notificationScheduler: scheduler ?? FakeNotificationScheduler(),
     locationService: location ?? FakeLocationService(),
+    musicPlayer: music ?? FakeMusicPlayer(),
   );
   addTearDown(sl.reset);
   final settings = await tester.runAsync(() async {

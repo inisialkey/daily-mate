@@ -2,6 +2,7 @@ import 'package:clock/clock.dart';
 import 'package:daily_mate/core/di/service_locator.dart';
 import 'package:daily_mate/core/utils/dates.dart';
 import 'package:daily_mate/features/menu_bar/presentation/menu_bar_app.dart';
+import 'package:daily_mate/features/music/domain/music_player.dart';
 import 'package:daily_mate/features/tasks/domain/task_draft.dart';
 import 'package:daily_mate/features/tasks/domain/task_filter.dart';
 import 'package:daily_mate/features/tasks/domain/task_repository.dart';
@@ -9,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../helpers/fake_music_player.dart';
 import '../../../helpers/pump_app.dart';
 
 void main() {
@@ -92,5 +94,36 @@ void main() {
     await tester.tap(find.text('Buy milk'));
     await tester.tap(find.text('Open DailyMate'));
     expect(opened, ['/tasks?task=$id', '/today']);
+  });
+
+  testWidgets('shows the playing track and presses its media keys', (
+    tester,
+  ) async {
+    final music = FakeMusicPlayer()
+      ..track = (
+        title: 'Arjuna',
+        artist: 'Dewa',
+        artworkUrl: null,
+        playing: true,
+      );
+    await pumpApp(tester, size: popover, app: const MenuBarApp(), music: music);
+
+    expect(find.text('Arjuna'), findsOneWidget);
+    expect(find.text('Dewa'), findsOneWidget);
+    expect(find.byTooltip('Play'), findsNothing);
+    await tester.tap(find.byTooltip('Pause'));
+    await tester.tap(find.byTooltip('Next'));
+    await tester.tap(find.byTooltip('Previous'));
+    expect(music.sent, [
+      MediaCommand.playPause,
+      MediaCommand.next,
+      MediaCommand.previous,
+    ]);
+  });
+
+  testWidgets('hides the music controls while nothing plays', (tester) async {
+    await pumpApp(tester, size: popover, app: const MenuBarApp());
+
+    expect(find.byTooltip('Next'), findsNothing);
   });
 }
