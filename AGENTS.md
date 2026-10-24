@@ -29,7 +29,8 @@ end of any turn that edited a file. Fix the cause; never weaken the check to pas
   non-activating panel (quick add, today's tasks, next prayer) run by a second
   Flutter engine (`menuBarMain`) that shares the drift database isolate.
   Installed to `/Applications/DailyMate.app` with `scripts/install.sh` (2026-10-22).
-- Last green at: "Add a menu bar panel", 179 tests (2026-10-22)
+  The panel also shows MixMusic's track with media keys (installed, works, 2026-10-24).
+- Last green at: "MixMusic play/pause state", 186 tests (2026-10-24)
 - Blocked by: —
 
 ## Commands the agent cannot guess
@@ -93,6 +94,11 @@ end of any turn that edited a file. Fix the cause; never weaken the check to pas
   they share the bundle id. The asset catalog drops
   dark/tinted icon variants on macOS (they need an Icon Composer `.icon`), so the
   monochrome artwork is unused.
+- macOS 15.4+ closes MediaRemote to third-party apps: reading Now Playing and
+  `MRMediaRemoteSendCommand` both silently do nothing (tested on 26.5). MixMusic is read from
+  its own `queue.json`; controls are posted media keys (`CGEvent`, Accessibility grant).
+  A running DailyMate keeps refusing after the grant: it works only once relaunched.
+  The grant survives a reinstall with `scripts/install.sh`, ad hoc signing and all.
 
 ## Repo etiquette
 

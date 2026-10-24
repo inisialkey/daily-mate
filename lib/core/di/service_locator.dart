@@ -3,6 +3,8 @@ import 'package:daily_mate/core/database/app_database.dart';
 import 'package:daily_mate/core/database/backup_service.dart';
 import 'package:daily_mate/core/utils/app_clock.dart';
 import 'package:daily_mate/core/utils/pending_writes.dart';
+import 'package:daily_mate/features/music/data/mix_music_player.dart';
+import 'package:daily_mate/features/music/domain/music_player.dart';
 import 'package:daily_mate/features/notes/data/drift_note_repository.dart';
 import 'package:daily_mate/features/notes/domain/note_repository.dart';
 import 'package:daily_mate/features/notes/presentation/cubit/note_editor_cubit.dart';
@@ -49,6 +51,7 @@ Future<void> configureDependencies({
   AppClock? appClock,
   NotificationScheduler? notificationScheduler,
   LocationService? locationService,
+  MusicPlayer? musicPlayer,
 }) async {
   sl
     ..registerLazySingleton<AppDatabase>(
@@ -63,6 +66,7 @@ Future<void> configureDependencies({
     ..registerLazySingleton<LocationService>(
       () => locationService ?? GeolocatorLocationService(),
     )
+    ..registerLazySingleton<MusicPlayer>(() => musicPlayer ?? MixMusicPlayer())
     ..registerLazySingleton(PrayerCalculator.new)
     ..registerLazySingleton(() => BackupService(sl()));
   _repositories();
