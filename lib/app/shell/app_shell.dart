@@ -6,10 +6,8 @@ import 'package:daily_mate/app/shell/app_shortcuts.dart';
 import 'package:daily_mate/app/shell/app_sidebar.dart';
 import 'package:daily_mate/app/shell/shell_cubit.dart';
 import 'package:daily_mate/core/theme/tokens.dart';
-import 'package:daily_mate/core/ui/formatting.dart';
 import 'package:daily_mate/core/utils/dates.dart';
 import 'package:daily_mate/features/notes/presentation/pages/notes_page.dart';
-import 'package:daily_mate/features/prayer/presentation/cubit/prayer_cubit.dart';
 import 'package:daily_mate/features/search/presentation/widgets/search_dialog.dart';
 import 'package:daily_mate/features/settings/domain/app_settings.dart';
 import 'package:daily_mate/features/settings/presentation/cubit/settings_cubit.dart';
@@ -58,10 +56,6 @@ class AppShell extends StatelessWidget {
     final todayCount = context.select<ShellCubit, int>(
       (cubit) => cubit.state.todayCount,
     );
-    final prayer = context.watch<PrayerCubit>().state;
-    final prayerCaption = prayer is PrayerReady
-        ? '${prayer.next.name.label} ${formatTime(context, prayer.next.at)}'
-        : null;
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < Dimens.compactBreakpoint;
@@ -100,7 +94,6 @@ class AppShell extends StatelessWidget {
                     onNewTask: () => _newTask(context),
                     onSearch: () => unawaited(showSearchDialog(context)),
                     badges: {AppDestination.today: todayCount},
-                    captions: {AppDestination.prayer: ?prayerCaption},
                   ),
                   Expanded(
                     child: ColoredBox(

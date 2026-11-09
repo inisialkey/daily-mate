@@ -14,7 +14,6 @@ class SidebarItem extends StatelessWidget {
     this.selected = false,
     this.shortcut,
     this.badge,
-    this.caption,
     this.emphasized = false,
   });
 
@@ -26,9 +25,6 @@ class SidebarItem extends StatelessWidget {
   final String? shortcut;
   final int? badge;
 
-  /// Short trailing text, e.g. the next prayer time.
-  final String? caption;
-
   /// Primary call to action (New Task).
   final bool emphasized;
 
@@ -37,7 +33,6 @@ class SidebarItem extends StatelessWidget {
     final colors = context.colors;
     final palette = context.palette;
     final badge = this.badge;
-    final caption = this.caption;
     final foreground = emphasized ? colors.primary : colors.onSurface;
     final iconColor = selected || emphasized
         ? colors.primary
@@ -70,15 +65,7 @@ class SidebarItem extends StatelessWidget {
                   ),
                 ),
               ),
-              if (caption != null)
-                Text(
-                  caption,
-                  style: context.text.labelMedium?.copyWith(
-                    color: palette.textMuted,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                )
-              else if (badge != null && badge > 0)
+              if (badge != null && badge > 0)
                 Text(
                   '$badge',
                   style: context.text.labelMedium?.copyWith(
