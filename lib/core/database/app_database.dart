@@ -1,3 +1,4 @@
+import 'package:daily_mate/core/database/app_database.steps.dart';
 import 'package:daily_mate/core/database/converters.dart';
 import 'package:daily_mate/core/database/tables.dart';
 import 'package:daily_mate/core/recurrence/recurrence_rule.dart';
@@ -47,11 +48,15 @@ class AppDatabase extends _$AppDatabase {
   static const fileName = 'dailymate';
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => m.createAll(),
+    onUpgrade: stepByStep(
+      from1To2: (m, schema) =>
+          m.addColumn(schema.tasks, schema.tasks.inProgress),
+    ),
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
       await _ensureSingletonRows();

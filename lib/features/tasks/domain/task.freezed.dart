@@ -17,7 +17,7 @@ mixin _$Task {
  int get id; String get title; DateTime get createdAt; DateTime get updatedAt; String get notes;/// Calendar date (local midnight).
  DateTime? get dueDate;/// Minutes after midnight; only with a [dueDate].
  int? get dueMinutes; Priority get priority; String? get category; List<String> get tags; List<Subtask> get subtasks; RecurrenceRule? get recurrence;/// Minutes before the due time; null means no reminder.
- int? get reminderOffsetMinutes; DateTime? get reminderSnoozedUntil; int? get noteId; DateTime? get completedAt;
+ int? get reminderOffsetMinutes; DateTime? get reminderSnoozedUntil; int? get noteId; DateTime? get completedAt; bool get inProgress;
 /// Create a copy of Task
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $TaskCopyWith<Task> get copyWith => _$TaskCopyWithImpl<Task>(this as Task, _$ide
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Task&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.dueDate, dueDate) || other.dueDate == dueDate)&&(identical(other.dueMinutes, dueMinutes) || other.dueMinutes == dueMinutes)&&(identical(other.priority, priority) || other.priority == priority)&&(identical(other.category, category) || other.category == category)&&const DeepCollectionEquality().equals(other.tags, tags)&&const DeepCollectionEquality().equals(other.subtasks, subtasks)&&(identical(other.recurrence, recurrence) || other.recurrence == recurrence)&&(identical(other.reminderOffsetMinutes, reminderOffsetMinutes) || other.reminderOffsetMinutes == reminderOffsetMinutes)&&(identical(other.reminderSnoozedUntil, reminderSnoozedUntil) || other.reminderSnoozedUntil == reminderSnoozedUntil)&&(identical(other.noteId, noteId) || other.noteId == noteId)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Task&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.dueDate, dueDate) || other.dueDate == dueDate)&&(identical(other.dueMinutes, dueMinutes) || other.dueMinutes == dueMinutes)&&(identical(other.priority, priority) || other.priority == priority)&&(identical(other.category, category) || other.category == category)&&const DeepCollectionEquality().equals(other.tags, tags)&&const DeepCollectionEquality().equals(other.subtasks, subtasks)&&(identical(other.recurrence, recurrence) || other.recurrence == recurrence)&&(identical(other.reminderOffsetMinutes, reminderOffsetMinutes) || other.reminderOffsetMinutes == reminderOffsetMinutes)&&(identical(other.reminderSnoozedUntil, reminderSnoozedUntil) || other.reminderSnoozedUntil == reminderSnoozedUntil)&&(identical(other.noteId, noteId) || other.noteId == noteId)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt)&&(identical(other.inProgress, inProgress) || other.inProgress == inProgress));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,title,createdAt,updatedAt,notes,dueDate,dueMinutes,priority,category,const DeepCollectionEquality().hash(tags),const DeepCollectionEquality().hash(subtasks),recurrence,reminderOffsetMinutes,reminderSnoozedUntil,noteId,completedAt);
+int get hashCode => Object.hash(runtimeType,id,title,createdAt,updatedAt,notes,dueDate,dueMinutes,priority,category,const DeepCollectionEquality().hash(tags),const DeepCollectionEquality().hash(subtasks),recurrence,reminderOffsetMinutes,reminderSnoozedUntil,noteId,completedAt,inProgress);
 
 @override
 String toString() {
-  return 'Task(id: $id, title: $title, createdAt: $createdAt, updatedAt: $updatedAt, notes: $notes, dueDate: $dueDate, dueMinutes: $dueMinutes, priority: $priority, category: $category, tags: $tags, subtasks: $subtasks, recurrence: $recurrence, reminderOffsetMinutes: $reminderOffsetMinutes, reminderSnoozedUntil: $reminderSnoozedUntil, noteId: $noteId, completedAt: $completedAt)';
+  return 'Task(id: $id, title: $title, createdAt: $createdAt, updatedAt: $updatedAt, notes: $notes, dueDate: $dueDate, dueMinutes: $dueMinutes, priority: $priority, category: $category, tags: $tags, subtasks: $subtasks, recurrence: $recurrence, reminderOffsetMinutes: $reminderOffsetMinutes, reminderSnoozedUntil: $reminderSnoozedUntil, noteId: $noteId, completedAt: $completedAt, inProgress: $inProgress)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $TaskCopyWith<$Res>  {
   factory $TaskCopyWith(Task value, $Res Function(Task) _then) = _$TaskCopyWithImpl;
 @useResult
 $Res call({
- int id, String title, DateTime createdAt, DateTime updatedAt, String notes, DateTime? dueDate, int? dueMinutes, Priority priority, String? category, List<String> tags, List<Subtask> subtasks, RecurrenceRule? recurrence, int? reminderOffsetMinutes, DateTime? reminderSnoozedUntil, int? noteId, DateTime? completedAt
+ int id, String title, DateTime createdAt, DateTime updatedAt, String notes, DateTime? dueDate, int? dueMinutes, Priority priority, String? category, List<String> tags, List<Subtask> subtasks, RecurrenceRule? recurrence, int? reminderOffsetMinutes, DateTime? reminderSnoozedUntil, int? noteId, DateTime? completedAt, bool inProgress
 });
 
 
@@ -65,7 +65,7 @@ class _$TaskCopyWithImpl<$Res>
 
 /// Create a copy of Task
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? createdAt = null,Object? updatedAt = null,Object? notes = null,Object? dueDate = freezed,Object? dueMinutes = freezed,Object? priority = null,Object? category = freezed,Object? tags = null,Object? subtasks = null,Object? recurrence = freezed,Object? reminderOffsetMinutes = freezed,Object? reminderSnoozedUntil = freezed,Object? noteId = freezed,Object? completedAt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? createdAt = null,Object? updatedAt = null,Object? notes = null,Object? dueDate = freezed,Object? dueMinutes = freezed,Object? priority = null,Object? category = freezed,Object? tags = null,Object? subtasks = null,Object? recurrence = freezed,Object? reminderOffsetMinutes = freezed,Object? reminderSnoozedUntil = freezed,Object? noteId = freezed,Object? completedAt = freezed,Object? inProgress = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -83,7 +83,8 @@ as RecurrenceRule?,reminderOffsetMinutes: freezed == reminderOffsetMinutes ? _se
 as int?,reminderSnoozedUntil: freezed == reminderSnoozedUntil ? _self.reminderSnoozedUntil : reminderSnoozedUntil // ignore: cast_nullable_to_non_nullable
 as DateTime?,noteId: freezed == noteId ? _self.noteId : noteId // ignore: cast_nullable_to_non_nullable
 as int?,completedAt: freezed == completedAt ? _self.completedAt : completedAt // ignore: cast_nullable_to_non_nullable
-as DateTime?,
+as DateTime?,inProgress: null == inProgress ? _self.inProgress : inProgress // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 /// Create a copy of Task
@@ -180,10 +181,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String title,  DateTime createdAt,  DateTime updatedAt,  String notes,  DateTime? dueDate,  int? dueMinutes,  Priority priority,  String? category,  List<String> tags,  List<Subtask> subtasks,  RecurrenceRule? recurrence,  int? reminderOffsetMinutes,  DateTime? reminderSnoozedUntil,  int? noteId,  DateTime? completedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String title,  DateTime createdAt,  DateTime updatedAt,  String notes,  DateTime? dueDate,  int? dueMinutes,  Priority priority,  String? category,  List<String> tags,  List<Subtask> subtasks,  RecurrenceRule? recurrence,  int? reminderOffsetMinutes,  DateTime? reminderSnoozedUntil,  int? noteId,  DateTime? completedAt,  bool inProgress)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Task() when $default != null:
-return $default(_that.id,_that.title,_that.createdAt,_that.updatedAt,_that.notes,_that.dueDate,_that.dueMinutes,_that.priority,_that.category,_that.tags,_that.subtasks,_that.recurrence,_that.reminderOffsetMinutes,_that.reminderSnoozedUntil,_that.noteId,_that.completedAt);case _:
+return $default(_that.id,_that.title,_that.createdAt,_that.updatedAt,_that.notes,_that.dueDate,_that.dueMinutes,_that.priority,_that.category,_that.tags,_that.subtasks,_that.recurrence,_that.reminderOffsetMinutes,_that.reminderSnoozedUntil,_that.noteId,_that.completedAt,_that.inProgress);case _:
   return orElse();
 
 }
@@ -201,10 +202,10 @@ return $default(_that.id,_that.title,_that.createdAt,_that.updatedAt,_that.notes
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String title,  DateTime createdAt,  DateTime updatedAt,  String notes,  DateTime? dueDate,  int? dueMinutes,  Priority priority,  String? category,  List<String> tags,  List<Subtask> subtasks,  RecurrenceRule? recurrence,  int? reminderOffsetMinutes,  DateTime? reminderSnoozedUntil,  int? noteId,  DateTime? completedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String title,  DateTime createdAt,  DateTime updatedAt,  String notes,  DateTime? dueDate,  int? dueMinutes,  Priority priority,  String? category,  List<String> tags,  List<Subtask> subtasks,  RecurrenceRule? recurrence,  int? reminderOffsetMinutes,  DateTime? reminderSnoozedUntil,  int? noteId,  DateTime? completedAt,  bool inProgress)  $default,) {final _that = this;
 switch (_that) {
 case _Task():
-return $default(_that.id,_that.title,_that.createdAt,_that.updatedAt,_that.notes,_that.dueDate,_that.dueMinutes,_that.priority,_that.category,_that.tags,_that.subtasks,_that.recurrence,_that.reminderOffsetMinutes,_that.reminderSnoozedUntil,_that.noteId,_that.completedAt);case _:
+return $default(_that.id,_that.title,_that.createdAt,_that.updatedAt,_that.notes,_that.dueDate,_that.dueMinutes,_that.priority,_that.category,_that.tags,_that.subtasks,_that.recurrence,_that.reminderOffsetMinutes,_that.reminderSnoozedUntil,_that.noteId,_that.completedAt,_that.inProgress);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -221,10 +222,10 @@ return $default(_that.id,_that.title,_that.createdAt,_that.updatedAt,_that.notes
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String title,  DateTime createdAt,  DateTime updatedAt,  String notes,  DateTime? dueDate,  int? dueMinutes,  Priority priority,  String? category,  List<String> tags,  List<Subtask> subtasks,  RecurrenceRule? recurrence,  int? reminderOffsetMinutes,  DateTime? reminderSnoozedUntil,  int? noteId,  DateTime? completedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String title,  DateTime createdAt,  DateTime updatedAt,  String notes,  DateTime? dueDate,  int? dueMinutes,  Priority priority,  String? category,  List<String> tags,  List<Subtask> subtasks,  RecurrenceRule? recurrence,  int? reminderOffsetMinutes,  DateTime? reminderSnoozedUntil,  int? noteId,  DateTime? completedAt,  bool inProgress)?  $default,) {final _that = this;
 switch (_that) {
 case _Task() when $default != null:
-return $default(_that.id,_that.title,_that.createdAt,_that.updatedAt,_that.notes,_that.dueDate,_that.dueMinutes,_that.priority,_that.category,_that.tags,_that.subtasks,_that.recurrence,_that.reminderOffsetMinutes,_that.reminderSnoozedUntil,_that.noteId,_that.completedAt);case _:
+return $default(_that.id,_that.title,_that.createdAt,_that.updatedAt,_that.notes,_that.dueDate,_that.dueMinutes,_that.priority,_that.category,_that.tags,_that.subtasks,_that.recurrence,_that.reminderOffsetMinutes,_that.reminderSnoozedUntil,_that.noteId,_that.completedAt,_that.inProgress);case _:
   return null;
 
 }
@@ -236,7 +237,7 @@ return $default(_that.id,_that.title,_that.createdAt,_that.updatedAt,_that.notes
 
 
 class _Task extends Task {
-  const _Task({required this.id, required this.title, required this.createdAt, required this.updatedAt, this.notes = '', this.dueDate, this.dueMinutes, this.priority = Priority.none, this.category, final  List<String> tags = const <String>[], final  List<Subtask> subtasks = const <Subtask>[], this.recurrence, this.reminderOffsetMinutes, this.reminderSnoozedUntil, this.noteId, this.completedAt}): _tags = tags,_subtasks = subtasks,super._();
+  const _Task({required this.id, required this.title, required this.createdAt, required this.updatedAt, this.notes = '', this.dueDate, this.dueMinutes, this.priority = Priority.none, this.category, final  List<String> tags = const <String>[], final  List<Subtask> subtasks = const <Subtask>[], this.recurrence, this.reminderOffsetMinutes, this.reminderSnoozedUntil, this.noteId, this.completedAt, this.inProgress = false}): _tags = tags,_subtasks = subtasks,super._();
   
 
 @override final  int id;
@@ -270,6 +271,7 @@ class _Task extends Task {
 @override final  DateTime? reminderSnoozedUntil;
 @override final  int? noteId;
 @override final  DateTime? completedAt;
+@override@JsonKey() final  bool inProgress;
 
 /// Create a copy of Task
 /// with the given fields replaced by the non-null parameter values.
@@ -281,16 +283,16 @@ _$TaskCopyWith<_Task> get copyWith => __$TaskCopyWithImpl<_Task>(this, _$identit
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Task&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.dueDate, dueDate) || other.dueDate == dueDate)&&(identical(other.dueMinutes, dueMinutes) || other.dueMinutes == dueMinutes)&&(identical(other.priority, priority) || other.priority == priority)&&(identical(other.category, category) || other.category == category)&&const DeepCollectionEquality().equals(other._tags, _tags)&&const DeepCollectionEquality().equals(other._subtasks, _subtasks)&&(identical(other.recurrence, recurrence) || other.recurrence == recurrence)&&(identical(other.reminderOffsetMinutes, reminderOffsetMinutes) || other.reminderOffsetMinutes == reminderOffsetMinutes)&&(identical(other.reminderSnoozedUntil, reminderSnoozedUntil) || other.reminderSnoozedUntil == reminderSnoozedUntil)&&(identical(other.noteId, noteId) || other.noteId == noteId)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Task&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.dueDate, dueDate) || other.dueDate == dueDate)&&(identical(other.dueMinutes, dueMinutes) || other.dueMinutes == dueMinutes)&&(identical(other.priority, priority) || other.priority == priority)&&(identical(other.category, category) || other.category == category)&&const DeepCollectionEquality().equals(other._tags, _tags)&&const DeepCollectionEquality().equals(other._subtasks, _subtasks)&&(identical(other.recurrence, recurrence) || other.recurrence == recurrence)&&(identical(other.reminderOffsetMinutes, reminderOffsetMinutes) || other.reminderOffsetMinutes == reminderOffsetMinutes)&&(identical(other.reminderSnoozedUntil, reminderSnoozedUntil) || other.reminderSnoozedUntil == reminderSnoozedUntil)&&(identical(other.noteId, noteId) || other.noteId == noteId)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt)&&(identical(other.inProgress, inProgress) || other.inProgress == inProgress));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,title,createdAt,updatedAt,notes,dueDate,dueMinutes,priority,category,const DeepCollectionEquality().hash(_tags),const DeepCollectionEquality().hash(_subtasks),recurrence,reminderOffsetMinutes,reminderSnoozedUntil,noteId,completedAt);
+int get hashCode => Object.hash(runtimeType,id,title,createdAt,updatedAt,notes,dueDate,dueMinutes,priority,category,const DeepCollectionEquality().hash(_tags),const DeepCollectionEquality().hash(_subtasks),recurrence,reminderOffsetMinutes,reminderSnoozedUntil,noteId,completedAt,inProgress);
 
 @override
 String toString() {
-  return 'Task(id: $id, title: $title, createdAt: $createdAt, updatedAt: $updatedAt, notes: $notes, dueDate: $dueDate, dueMinutes: $dueMinutes, priority: $priority, category: $category, tags: $tags, subtasks: $subtasks, recurrence: $recurrence, reminderOffsetMinutes: $reminderOffsetMinutes, reminderSnoozedUntil: $reminderSnoozedUntil, noteId: $noteId, completedAt: $completedAt)';
+  return 'Task(id: $id, title: $title, createdAt: $createdAt, updatedAt: $updatedAt, notes: $notes, dueDate: $dueDate, dueMinutes: $dueMinutes, priority: $priority, category: $category, tags: $tags, subtasks: $subtasks, recurrence: $recurrence, reminderOffsetMinutes: $reminderOffsetMinutes, reminderSnoozedUntil: $reminderSnoozedUntil, noteId: $noteId, completedAt: $completedAt, inProgress: $inProgress)';
 }
 
 
@@ -301,7 +303,7 @@ abstract mixin class _$TaskCopyWith<$Res> implements $TaskCopyWith<$Res> {
   factory _$TaskCopyWith(_Task value, $Res Function(_Task) _then) = __$TaskCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String title, DateTime createdAt, DateTime updatedAt, String notes, DateTime? dueDate, int? dueMinutes, Priority priority, String? category, List<String> tags, List<Subtask> subtasks, RecurrenceRule? recurrence, int? reminderOffsetMinutes, DateTime? reminderSnoozedUntil, int? noteId, DateTime? completedAt
+ int id, String title, DateTime createdAt, DateTime updatedAt, String notes, DateTime? dueDate, int? dueMinutes, Priority priority, String? category, List<String> tags, List<Subtask> subtasks, RecurrenceRule? recurrence, int? reminderOffsetMinutes, DateTime? reminderSnoozedUntil, int? noteId, DateTime? completedAt, bool inProgress
 });
 
 
@@ -318,7 +320,7 @@ class __$TaskCopyWithImpl<$Res>
 
 /// Create a copy of Task
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? createdAt = null,Object? updatedAt = null,Object? notes = null,Object? dueDate = freezed,Object? dueMinutes = freezed,Object? priority = null,Object? category = freezed,Object? tags = null,Object? subtasks = null,Object? recurrence = freezed,Object? reminderOffsetMinutes = freezed,Object? reminderSnoozedUntil = freezed,Object? noteId = freezed,Object? completedAt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? createdAt = null,Object? updatedAt = null,Object? notes = null,Object? dueDate = freezed,Object? dueMinutes = freezed,Object? priority = null,Object? category = freezed,Object? tags = null,Object? subtasks = null,Object? recurrence = freezed,Object? reminderOffsetMinutes = freezed,Object? reminderSnoozedUntil = freezed,Object? noteId = freezed,Object? completedAt = freezed,Object? inProgress = null,}) {
   return _then(_Task(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -336,7 +338,8 @@ as RecurrenceRule?,reminderOffsetMinutes: freezed == reminderOffsetMinutes ? _se
 as int?,reminderSnoozedUntil: freezed == reminderSnoozedUntil ? _self.reminderSnoozedUntil : reminderSnoozedUntil // ignore: cast_nullable_to_non_nullable
 as DateTime?,noteId: freezed == noteId ? _self.noteId : noteId // ignore: cast_nullable_to_non_nullable
 as int?,completedAt: freezed == completedAt ? _self.completedAt : completedAt // ignore: cast_nullable_to_non_nullable
-as DateTime?,
+as DateTime?,inProgress: null == inProgress ? _self.inProgress : inProgress // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

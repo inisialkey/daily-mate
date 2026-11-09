@@ -79,6 +79,20 @@ class _TaskContextMenuState extends State<TaskContextMenu> {
           ],
           child: const Text('Priority'),
         ),
+        SubmenuButton(
+          leadingIcon: const Icon(CupertinoIcons.circle_lefthalf_fill),
+          menuChildren: [
+            for (final progress in TaskProgress.values)
+              MenuItemButton(
+                trailingIcon: progress == task.progress
+                    ? const Icon(CupertinoIcons.checkmark_alt)
+                    : null,
+                onPressed: () => actions.setProgress(task, progress),
+                child: Text(progress.label),
+              ),
+          ],
+          child: const Text('Status'),
+        ),
         const Divider(),
         MenuItemButton(
           leadingIcon: Icon(CupertinoIcons.trash, color: error),

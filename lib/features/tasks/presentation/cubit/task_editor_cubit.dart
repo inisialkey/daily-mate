@@ -123,6 +123,11 @@ class TaskEditorCubit extends Cubit<TaskEditorState> with TaskCommands {
     }
   }
 
+  Future<void> setProgress(TaskProgress progress) async {
+    await flush();
+    await setTaskProgress(taskId, progress);
+  }
+
   Future<void> addSubtask(String title) => tasks.addSubtask(taskId, title);
 
   Future<void> renameSubtask(int id, String title) =>

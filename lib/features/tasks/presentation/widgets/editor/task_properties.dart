@@ -26,8 +26,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-/// Due, repeat, reminder, priority, category and tags. Every change saves
-/// immediately. Repeat and reminder need a date, so choosing one on an
+/// Status, due, repeat, reminder, priority, category and tags. Every change
+/// saves immediately. Repeat and reminder need a date, so choosing one on an
 /// undated task dates it today.
 class TaskProperties extends StatelessWidget {
   const TaskProperties({
@@ -56,6 +56,29 @@ class TaskProperties extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        PropertyRow(
+          icon: CupertinoIcons.circle_lefthalf_fill,
+          label: 'Status',
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: MenuPickerButton(
+              label: task.progress.label,
+              semanticLabel: 'Status, ${task.progress.label}',
+              menuChildren: [
+                for (final p in TaskProgress.values)
+                  MenuItemButton(
+                    trailingIcon: p == task.progress
+                        ? const Icon(CupertinoIcons.checkmark_alt)
+                        : null,
+                    onPressed: () => unawaited(
+                      runAction(context, () => cubit.setProgress(p)),
+                    ),
+                    child: Text(p.label),
+                  ),
+              ],
+            ),
+          ),
+        ),
         PropertyRow(
           icon: CupertinoIcons.calendar,
           label: 'Due',

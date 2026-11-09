@@ -375,4 +375,71 @@ void main() {
     expect(task.title, 'Persist me');
     expect(task.recurrence, RecurrenceRule.weekdaysOnly);
   });
+
+  group('progress', () {
+    Future<TaskProgress> progressOf(int id) async =>
+        (await repo.task(id))!.progress;
+
+    test('a new task is To Do and moves through every status', () async {
+      final id = await repo.create(const TaskDraft(title: 'Write'));
+      expect(await progressOf(id), TaskProgress.toDo);
+
+      await repo.setProgress(id, TaskProgress.inProgress);
+      expect(await progressOf(id), TaskProgress.inProgress);
+
+      await repo.setProgress(id, TaskProgress.done);
+      expect(await progressOf(id), TaskProgress.done);
+
+      await repo.setProgress(id, TaskProgress.toDo);
+      expect(await progressOf(id), TaskProgress.toDo);
+    });
+
+    test('reopening a completed task restores In Progress', () async {
+      final id = await repo.create(const TaskDraft(title: 'Write'));
+      await repo.setProgress(id, TaskProgress.inProgress);
+      await repo.complete(id);
+      await repo.reopen(id);
+      expect(await progressOf(id), TaskProgress.inProgress);
+    });
+
+    test('editing other fields keeps the status', () async {
+      final id = await repo.create(const TaskDraft(title: 'Write'));
+      await repo.setProgress(id, TaskProgress.inProgress);
+      await repo.update(id, const TaskDraft(title: 'Rewrite'));
+      expect(await progressOf(id), TaskProgress.inProgress);
+    });
+
+    test('filters separate To Do, In Progress and Done', () async {
+      final todo = await repo.create(const TaskDraft(title: 'A'));
+      final doing = await repo.create(const TaskDraft(title: 'B'));
+      final done = await repo.create(const TaskDraft(title: 'C'));
+      await repo.setProgress(doing, TaskProgress.inProgress);
+      await repo.setProgress(done, TaskProgress.inProgress);
+      await repo.complete(done);
+
+      Future<List<int>> ids(TaskStatus status) async => [
+        for (final t in await repo.tasks(TaskFilter(status: status))) t.id,
+      ];
+      expect(await ids(TaskStatus.toDo), [todo]);
+      expect(await ids(TaskStatus.inProgress), [doing]);
+      expect(await ids(TaskStatus.completed), [done]);
+      expect(await ids(TaskStatus.open), unorderedEquals([todo, doing]));
+    });
+
+    test('the next occurrence of a recurring task starts To Do', () async {
+      final id = await repo.create(
+        TaskDraft(
+          title: 'Standup',
+          dueDate: d(2026, 3, 2),
+          recurrence: RecurrenceRule.daily,
+        ),
+      );
+      await repo.setProgress(id, TaskProgress.inProgress);
+      await at(d(2026, 3, 2), () => repo.complete(id));
+
+      final next = (await repo.tasks(const TaskFilter())).single;
+      expect(next.id, isNot(id));
+      expect(next.progress, TaskProgress.toDo);
+    });
+  });
 }

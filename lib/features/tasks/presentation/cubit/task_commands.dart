@@ -19,6 +19,9 @@ mixin TaskCommands {
 
   Future<void> deleteTask(int id) => tasks.delete(id);
 
+  Future<void> setTaskProgress(int id, TaskProgress progress) =>
+      tasks.setProgress(id, progress);
+
   Future<void> moveTask(Task task, DateTime? date) =>
       tasks.update(task.id, TaskDraft.fromTask(task).copyWith(dueDate: date));
 

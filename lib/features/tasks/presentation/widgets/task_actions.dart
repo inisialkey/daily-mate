@@ -43,6 +43,15 @@ class TaskListActions {
     );
   }
 
+  /// Completing from here offers Undo, like the checkbox.
+  Future<void> setProgress(Task task, TaskProgress progress) =>
+      progress == TaskProgress.done && !task.isCompleted
+      ? toggle(task)
+      : runAction(
+          _context,
+          () => _commands.setTaskProgress(task.id, progress),
+        );
+
   Future<void> moveTo(Task task, DateTime? date) =>
       runAction(_context, () => _commands.moveTask(task, date));
 

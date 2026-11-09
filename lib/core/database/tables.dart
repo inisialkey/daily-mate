@@ -54,6 +54,9 @@ class Tasks extends Table {
     #id,
     onDelete: KeyAction.setNull,
   )();
+
+  /// Kept while completed, so undoing a completion restores it.
+  BoolColumn get inProgress => boolean().withDefault(const Constant(false))();
   DateTimeColumn get completedAt => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();

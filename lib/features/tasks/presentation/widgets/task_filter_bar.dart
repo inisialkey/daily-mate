@@ -71,6 +71,11 @@ class _TaskFilterBarState extends State<TaskFilterBar> {
           showSelectedIcon: false,
           segments: const [
             ButtonSegment(value: TaskStatus.open, label: Text('Open')),
+            ButtonSegment(value: TaskStatus.toDo, label: Text('To Do')),
+            ButtonSegment(
+              value: TaskStatus.inProgress,
+              label: Text('In Progress'),
+            ),
             ButtonSegment(value: TaskStatus.completed, label: Text('Done')),
             ButtonSegment(value: TaskStatus.any, label: Text('All')),
           ],
@@ -139,7 +144,9 @@ class _TaskFilterBarState extends State<TaskFilterBar> {
           label: 'Sort: ${f.sort.label}',
           menuChildren: [
             for (final sort in TaskSort.values)
-              if (sort != TaskSort.completed || f.status != TaskStatus.open)
+              if (sort != TaskSort.completed ||
+                  f.status == TaskStatus.completed ||
+                  f.status == TaskStatus.any)
                 MenuItemButton(
                   onPressed: () => widget.onChanged(f.copyWith(sort: sort)),
                   child: Text(sort.label),
