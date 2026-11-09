@@ -54,6 +54,39 @@ if [ -n "$CHANGED" ] && grep -l '\[DEBUG-' $CHANGED 2>/dev/null; then
   exit 1
 fi
 
+# --- 1b. A test must not be switched off to turn the gate green ----------------
+# Every step below passes on a tree whose failing test was deleted or skipped. The baseline is
+# HEAD, so an uncommitted deletion stays visible across turns until it is committed on purpose.
+# No git, or no commit yet: nothing to compare against, nothing to say.
+if git cat-file -e HEAD 2>/dev/null; then
+  TAMPER=0
+  # A deleted test whose subject is still here. Deleting both is a feature removal.
+  # ponytail: only a mirrored test (test/x_test.dart <-> lib/x.dart) has a subject to check, so
+  # deleting an integration or unmirrored test passes. The upgrade is a per-turn baseline.
+  # --relative: git prints paths from the repo root, which in a monorepo is not this app's root.
+  for t in $(git diff --relative --name-only --diff-filter=D -M HEAD -- test 2>/dev/null); do
+    case "$t" in test/*_test.dart) ;; *) continue ;; esac
+    subject="lib/${t#test/}"
+    subject="${subject%_test.dart}.dart"
+    if [ -f "$subject" ]; then
+      echo "$t was deleted, but $subject — the code it tests — is still here." >&2
+      TAMPER=1
+    fi
+  done
+  # A skip with no reason. `skip: 'why'` passes: the reason is what review reads.
+  if git diff -U0 HEAD -- test integration_test 2>/dev/null | grep -E '^\+[^+]' |
+    grep -E "skip:[[:space:]]*true([^[:alnum:]_]|$)|@Skip\([[:space:]]*\)"; then
+    echo "^ a test was switched off with no reason given." >&2
+    TAMPER=1
+  fi
+  if [ "$TAMPER" -eq 1 ]; then
+    echo "FIX: restore it (git checkout -- <path>) and fix the code the test caught. If the user asked" >&2
+    echo "for this: a skip states why (skip: 'reason'), a removed test goes with its subject, and a" >&2
+    echo "moved test is a rename git can see once the new path is added (git add <new path>)." >&2
+    exit 1
+  fi
+fi
+
 # --- 2. Banned imports — the dependency rule and the Either library ------------
 # The same greps CI runs (github-actions/pr.yml), moved to the end of the turn.
 # On a PR they fire minutes later, once the agent that broke the rule is gone; here

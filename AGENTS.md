@@ -84,6 +84,8 @@ end of any turn that edited a file. Fix the cause; never weaken the check to pas
 - Key handlers above a `TextField` see its keys before the text system does. Unmodified
   keys (⌫, arrows) must be ignored while an `EditableText` has focus — see
   `TaskListView._onKey` — or typing in the field breaks.
+- A `SnackBar` with an `action` defaults to `persist: true` and never times out. Every
+  snackbar with an action needs `persist: false`, and `SnackBarThemeData` has no such setting.
 - Overflow errors in widget tests are real: the test font is wider than SF Pro, like larger
   text sizes. Fix with `Flexible`/ellipsis, never by enlarging the test window.
 - macOS 26 masks every app icon to its own 824 px squircle, so whatever lies outside the

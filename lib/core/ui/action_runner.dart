@@ -24,7 +24,9 @@ Future<bool> runAction(
   final messenger = context.mounted ? ScaffoldMessenger.maybeOf(context) : null;
   void show(String text, {SnackBarAction? snackAction}) => messenger
     ?..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(text), action: snackAction));
+    ..showSnackBar(
+      SnackBar(content: Text(text), action: snackAction, persist: false),
+    );
 
   try {
     await action();

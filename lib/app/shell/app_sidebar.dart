@@ -16,7 +16,6 @@ class AppSidebar extends StatelessWidget {
     this.onSearch,
     this.onNewTask,
     this.badges = const {},
-    this.captions = const {},
   });
 
   final AppDestination current;
@@ -28,7 +27,6 @@ class AppSidebar extends StatelessWidget {
   final VoidCallback? onSearch;
   final VoidCallback? onNewTask;
   final Map<AppDestination, int> badges;
-  final Map<AppDestination, String> captions;
 
   @override
   Widget build(BuildContext context) {
@@ -61,7 +59,6 @@ class AppSidebar extends StatelessWidget {
       selected: d == current,
       showLabel: showLabel,
       badge: badges[d],
-      caption: captions[d],
       onTap: () => onSelect(d),
     );
 

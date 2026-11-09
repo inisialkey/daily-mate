@@ -48,6 +48,10 @@ void main() {
     );
     expect(notes!.single.title, 'Gift ideas for Ibu');
     expect(find.text('Note saved'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    expect(find.text('Note saved'), findsNothing);
   });
 
   testWidgets('list keys work after a click but not while typing', (
