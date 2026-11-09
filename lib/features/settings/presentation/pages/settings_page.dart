@@ -265,6 +265,7 @@ class _DataSectionState extends State<_DataSection> {
       ..showSnackBar(
         SnackBar(
           content: const Text('Backup saved'),
+          persist: false,
           action: SnackBarAction(
             label: 'Show in Finder',
             onPressed: () => unawaited(WindowChannel.revealInFinder(file)),

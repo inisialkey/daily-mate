@@ -59,6 +59,7 @@ class _QuickCaptureFieldState extends State<_QuickCaptureField> {
         ..showSnackBar(
           SnackBar(
             content: const Text('Note saved'),
+            persist: false,
             action: SnackBarAction(
               label: 'Open',
               onPressed: () =>
