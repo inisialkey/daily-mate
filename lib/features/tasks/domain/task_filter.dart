@@ -3,7 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'task_filter.freezed.dart';
 
-enum TaskStatus { open, completed, any }
+enum TaskStatus { open, toDo, inProgress, completed, any }
 
 enum TaskSort {
   dueDate('Due date'),

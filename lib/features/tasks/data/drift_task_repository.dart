@@ -163,6 +163,22 @@ class DriftTaskRepository implements TaskRepository {
   });
 
   @override
+  Future<void> setProgress(int id, TaskProgress progress) =>
+      _db.transaction(() async {
+        if (progress == TaskProgress.done) return complete(id);
+        await reopen(id);
+        final inProgress = progress == TaskProgress.inProgress;
+        final row = await _row(id);
+        if (row == null || row.inProgress == inProgress) return;
+        await _byId(id).write(
+          TasksCompanion(
+            inProgress: Value(inProgress),
+            updatedAt: Value(clock.now()),
+          ),
+        );
+      });
+
+  @override
   Future<int> addSubtask(int taskId, String title) {
     final name = _subtaskTitle(title);
     return _db.transaction(() async {
@@ -272,6 +288,7 @@ class DriftTaskRepository implements TaskRepository {
                 id: const Value.absent(),
                 dueDate: Value(due),
                 completedAt: const Value(null),
+                inProgress: const Value(false),
                 successorId: const Value(null),
                 reminderSnoozedUntil: const Value(null),
                 createdAt: Value(now),
@@ -358,6 +375,8 @@ class DriftTaskRepository implements TaskRepository {
     final conditions = <Expression<bool>>[
       switch (f.status) {
         TaskStatus.open => t.completedAt.isNull(),
+        TaskStatus.toDo => t.completedAt.isNull() & t.inProgress.not(),
+        TaskStatus.inProgress => t.completedAt.isNull() & t.inProgress,
         TaskStatus.completed => t.completedAt.isNotNull(),
         TaskStatus.any => const Constant(true),
       },

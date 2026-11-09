@@ -37,6 +37,7 @@ Task taskFromRow(
   reminderSnoozedUntil: row.reminderSnoozedUntil,
   noteId: row.noteId,
   completedAt: row.completedAt,
+  inProgress: row.inProgress,
   createdAt: row.createdAt,
   updatedAt: row.updatedAt,
 );

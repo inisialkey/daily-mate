@@ -680,6 +680,21 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
       'REFERENCES tasks (id) ON DELETE SET NULL',
     ),
   );
+  static const VerificationMeta _inProgressMeta = const VerificationMeta(
+    'inProgress',
+  );
+  @override
+  late final GeneratedColumn<bool> inProgress = GeneratedColumn<bool>(
+    'in_progress',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("in_progress" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _completedAtMeta = const VerificationMeta(
     'completedAt',
   );
@@ -731,6 +746,7 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
     reminderSnoozedUntil,
     noteId,
     successorId,
+    inProgress,
     completedAt,
     createdAt,
     updatedAt,
@@ -825,6 +841,12 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
           data['successor_id']!,
           _successorIdMeta,
         ),
+      );
+    }
+    if (data.containsKey('in_progress')) {
+      context.handle(
+        _inProgressMeta,
+        inProgress.isAcceptableOrUnknown(data['in_progress']!, _inProgressMeta),
       );
     }
     if (data.containsKey('completed_at')) {
@@ -935,6 +957,10 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
         DriftSqlType.int,
         data['${effectivePrefix}successor_id'],
       ),
+      inProgress: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}in_progress'],
+      )!,
       completedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}completed_at'],
@@ -1002,6 +1028,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
   /// Next occurrence spawned when this recurring task was completed. Set
   /// once, so completing the same occurrence again never spawns a duplicate.
   final int? successorId;
+
+  /// Kept while completed, so undoing a completion restores it.
+  final bool inProgress;
   final DateTime? completedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -1022,6 +1051,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     this.reminderSnoozedUntil,
     this.noteId,
     this.successorId,
+    required this.inProgress,
     this.completedAt,
     required this.createdAt,
     required this.updatedAt,
@@ -1077,6 +1107,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     if (!nullToAbsent || successorId != null) {
       map['successor_id'] = Variable<int>(successorId);
     }
+    map['in_progress'] = Variable<bool>(inProgress);
     if (!nullToAbsent || completedAt != null) {
       map['completed_at'] = Variable<DateTime>(completedAt);
     }
@@ -1123,6 +1154,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       successorId: successorId == null && nullToAbsent
           ? const Value.absent()
           : Value(successorId),
+      inProgress: Value(inProgress),
       completedAt: completedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(completedAt),
@@ -1163,6 +1195,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       ),
       noteId: serializer.fromJson<int?>(json['noteId']),
       successorId: serializer.fromJson<int?>(json['successorId']),
+      inProgress: serializer.fromJson<bool>(json['inProgress']),
       completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -1194,6 +1227,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       ),
       'noteId': serializer.toJson<int?>(noteId),
       'successorId': serializer.toJson<int?>(successorId),
+      'inProgress': serializer.toJson<bool>(inProgress),
       'completedAt': serializer.toJson<DateTime?>(completedAt),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -1217,6 +1251,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     Value<DateTime?> reminderSnoozedUntil = const Value.absent(),
     Value<int?> noteId = const Value.absent(),
     Value<int?> successorId = const Value.absent(),
+    bool? inProgress,
     Value<DateTime?> completedAt = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -1247,6 +1282,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
         : this.reminderSnoozedUntil,
     noteId: noteId.present ? noteId.value : this.noteId,
     successorId: successorId.present ? successorId.value : this.successorId,
+    inProgress: inProgress ?? this.inProgress,
     completedAt: completedAt.present ? completedAt.value : this.completedAt,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -1287,6 +1323,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       successorId: data.successorId.present
           ? data.successorId.value
           : this.successorId,
+      inProgress: data.inProgress.present
+          ? data.inProgress.value
+          : this.inProgress,
       completedAt: data.completedAt.present
           ? data.completedAt.value
           : this.completedAt,
@@ -1314,6 +1353,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           ..write('reminderSnoozedUntil: $reminderSnoozedUntil, ')
           ..write('noteId: $noteId, ')
           ..write('successorId: $successorId, ')
+          ..write('inProgress: $inProgress, ')
           ..write('completedAt: $completedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
@@ -1339,6 +1379,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     reminderSnoozedUntil,
     noteId,
     successorId,
+    inProgress,
     completedAt,
     createdAt,
     updatedAt,
@@ -1363,6 +1404,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           other.reminderSnoozedUntil == this.reminderSnoozedUntil &&
           other.noteId == this.noteId &&
           other.successorId == this.successorId &&
+          other.inProgress == this.inProgress &&
           other.completedAt == this.completedAt &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
@@ -1385,6 +1427,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
   final Value<DateTime?> reminderSnoozedUntil;
   final Value<int?> noteId;
   final Value<int?> successorId;
+  final Value<bool> inProgress;
   final Value<DateTime?> completedAt;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -1405,6 +1448,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     this.reminderSnoozedUntil = const Value.absent(),
     this.noteId = const Value.absent(),
     this.successorId = const Value.absent(),
+    this.inProgress = const Value.absent(),
     this.completedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -1426,6 +1470,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     this.reminderSnoozedUntil = const Value.absent(),
     this.noteId = const Value.absent(),
     this.successorId = const Value.absent(),
+    this.inProgress = const Value.absent(),
     this.completedAt = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -1449,6 +1494,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     Expression<DateTime>? reminderSnoozedUntil,
     Expression<int>? noteId,
     Expression<int>? successorId,
+    Expression<bool>? inProgress,
     Expression<DateTime>? completedAt,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -1473,6 +1519,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
         'reminder_snoozed_until': reminderSnoozedUntil,
       if (noteId != null) 'note_id': noteId,
       if (successorId != null) 'successor_id': successorId,
+      if (inProgress != null) 'in_progress': inProgress,
       if (completedAt != null) 'completed_at': completedAt,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -1496,6 +1543,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     Value<DateTime?>? reminderSnoozedUntil,
     Value<int?>? noteId,
     Value<int?>? successorId,
+    Value<bool>? inProgress,
     Value<DateTime?>? completedAt,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -1518,6 +1566,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
       reminderSnoozedUntil: reminderSnoozedUntil ?? this.reminderSnoozedUntil,
       noteId: noteId ?? this.noteId,
       successorId: successorId ?? this.successorId,
+      inProgress: inProgress ?? this.inProgress,
       completedAt: completedAt ?? this.completedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -1591,6 +1640,9 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     if (successorId.present) {
       map['successor_id'] = Variable<int>(successorId.value);
     }
+    if (inProgress.present) {
+      map['in_progress'] = Variable<bool>(inProgress.value);
+    }
     if (completedAt.present) {
       map['completed_at'] = Variable<DateTime>(completedAt.value);
     }
@@ -1622,6 +1674,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
           ..write('reminderSnoozedUntil: $reminderSnoozedUntil, ')
           ..write('noteId: $noteId, ')
           ..write('successorId: $successorId, ')
+          ..write('inProgress: $inProgress, ')
           ..write('completedAt: $completedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
@@ -5745,6 +5798,7 @@ typedef $$TasksTableCreateCompanionBuilder =
       Value<DateTime?> reminderSnoozedUntil,
       Value<int?> noteId,
       Value<int?> successorId,
+      Value<bool> inProgress,
       Value<DateTime?> completedAt,
       required DateTime createdAt,
       required DateTime updatedAt,
@@ -5767,6 +5821,7 @@ typedef $$TasksTableUpdateCompanionBuilder =
       Value<DateTime?> reminderSnoozedUntil,
       Value<int?> noteId,
       Value<int?> successorId,
+      Value<bool> inProgress,
       Value<DateTime?> completedAt,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -5949,6 +6004,11 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
 
   ColumnFilters<DateTime> get reminderSnoozedUntil => $composableBuilder(
     column: $table.reminderSnoozedUntil,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get inProgress => $composableBuilder(
+    column: $table.inProgress,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6168,6 +6228,11 @@ class $$TasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get inProgress => $composableBuilder(
+    column: $table.inProgress,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get completedAt => $composableBuilder(
     column: $table.completedAt,
     builder: (column) => ColumnOrderings(column),
@@ -6297,6 +6362,11 @@ class $$TasksTableAnnotationComposer
 
   GeneratedColumn<DateTime> get reminderSnoozedUntil => $composableBuilder(
     column: $table.reminderSnoozedUntil,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get inProgress => $composableBuilder(
+    column: $table.inProgress,
     builder: (column) => column,
   );
 
@@ -6484,6 +6554,7 @@ class $$TasksTableTableManager
                 Value<DateTime?> reminderSnoozedUntil = const Value.absent(),
                 Value<int?> noteId = const Value.absent(),
                 Value<int?> successorId = const Value.absent(),
+                Value<bool> inProgress = const Value.absent(),
                 Value<DateTime?> completedAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -6504,6 +6575,7 @@ class $$TasksTableTableManager
                 reminderSnoozedUntil: reminderSnoozedUntil,
                 noteId: noteId,
                 successorId: successorId,
+                inProgress: inProgress,
                 completedAt: completedAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -6527,6 +6599,7 @@ class $$TasksTableTableManager
                 Value<DateTime?> reminderSnoozedUntil = const Value.absent(),
                 Value<int?> noteId = const Value.absent(),
                 Value<int?> successorId = const Value.absent(),
+                Value<bool> inProgress = const Value.absent(),
                 Value<DateTime?> completedAt = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
@@ -6547,6 +6620,7 @@ class $$TasksTableTableManager
                 reminderSnoozedUntil: reminderSnoozedUntil,
                 noteId: noteId,
                 successorId: successorId,
+                inProgress: inProgress,
                 completedAt: completedAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,

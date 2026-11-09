@@ -14,9 +14,23 @@ void main() {
 
   setUpAll(() => verifier = SchemaVerifier(GeneratedHelper()));
 
-  test('a new database matches the v1 snapshot exactly', () async {
+  test('v1 upgrades to the current schema', () async {
     final db = AppDatabase(await verifier.startAt(1));
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 1);
+    await verifier.migrateAndValidate(db, 2);
+  });
+
+  test('upgrading from v1 keeps tasks and leaves them To Do', () async {
+    final schema = await verifier.schemaAt(1);
+    schema.rawDatabase.execute(
+      "INSERT INTO tasks (title, created_at, updated_at) VALUES ('Old', 0, 0)",
+    );
+    final db = AppDatabase(schema.newConnection());
+    addTearDown(db.close);
+    await verifier.migrateAndValidate(db, 2);
+
+    final row = await db.select(db.tasks).getSingle();
+    expect(row.title, 'Old');
+    expect(row.inProgress, isFalse);
   });
 }

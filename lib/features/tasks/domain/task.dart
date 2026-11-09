@@ -5,6 +5,18 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'task.freezed.dart';
 
+/// Where a task stands. Done is `completedAt`; only the split between the
+/// two open stages is stored.
+enum TaskProgress {
+  toDo('To Do'),
+  inProgress('In Progress'),
+  done('Done');
+
+  const TaskProgress(this.label);
+
+  final String label;
+}
+
 @freezed
 abstract class Task with _$Task {
   const factory Task({
@@ -30,11 +42,18 @@ abstract class Task with _$Task {
     DateTime? reminderSnoozedUntil,
     int? noteId,
     DateTime? completedAt,
+    @Default(false) bool inProgress,
   }) = _Task;
 
   const Task._();
 
   bool get isCompleted => completedAt != null;
+
+  TaskProgress get progress => isCompleted
+      ? TaskProgress.done
+      : inProgress
+      ? TaskProgress.inProgress
+      : TaskProgress.toDo;
 
   bool get isRecurring => recurrence != null;
 

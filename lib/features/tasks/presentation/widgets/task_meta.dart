@@ -29,6 +29,15 @@ class TaskMeta extends StatelessWidget {
     final today = dateOnly(now);
     final items = <Widget>[];
 
+    if (task.progress == TaskProgress.inProgress) {
+      items.add(
+        _MetaItem(
+          icon: CupertinoIcons.circle_lefthalf_fill,
+          label: TaskProgress.inProgress.label,
+          color: colors.primary,
+        ),
+      );
+    }
     if (due != null && (showDate || task.dueMinutes != null)) {
       final late = task.isLate(now);
       final minutes = task.dueMinutes;

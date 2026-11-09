@@ -1,5 +1,6 @@
 import 'package:daily_mate/core/di/service_locator.dart';
 import 'package:daily_mate/core/utils/dates.dart';
+import 'package:daily_mate/features/tasks/domain/task.dart';
 import 'package:daily_mate/features/tasks/domain/task_draft.dart';
 import 'package:daily_mate/features/tasks/domain/task_filter.dart';
 import 'package:daily_mate/features/tasks/domain/task_repository.dart';
@@ -57,6 +58,58 @@ void main() {
       (await tester.runAsync(() => repo().task(id)))!.isCompleted,
       isFalse,
     );
+  });
+
+  testWidgets('the inspector sets the status and the row shows it', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    final id = await seed(
+      tester,
+      TaskDraft(title: 'Water plants', dueDate: today),
+    );
+
+    await tester.tap(find.text('Water plants'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('To Do'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('In Progress'));
+    await tester.pumpAndSettle();
+    await settleAsync(tester);
+    await tester.pumpAndSettle();
+
+    // The inspector's button and the task row's label.
+    expect(find.text('In Progress'), findsNWidgets(2));
+    expect(
+      (await tester.runAsync(() => repo().task(id)))!.progress,
+      TaskProgress.inProgress,
+    );
+  });
+
+  testWidgets('All Tasks filters by status', (tester) async {
+    await pumpApp(
+      tester,
+      seed: () async {
+        await repo().create(const TaskDraft(title: 'Waiting'));
+        final id = await repo().create(const TaskDraft(title: 'Started'));
+        await repo().setProgress(id, TaskProgress.inProgress);
+      },
+    );
+    await tester.tap(find.text('All Tasks'));
+    await tester.pumpAndSettle();
+    await settleAsync(tester);
+    await tester.pumpAndSettle();
+    expect(find.text('Waiting'), findsOneWidget);
+
+    await tester.tap(
+      find.widgetWithText(SegmentedButton<TaskStatus>, 'In Progress'),
+    );
+    await tester.pumpAndSettle();
+    await settleAsync(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Waiting'), findsNothing);
+    expect(find.text('Started'), findsOneWidget);
   });
 
   testWidgets('the inspector edits and saves the title', (tester) async {

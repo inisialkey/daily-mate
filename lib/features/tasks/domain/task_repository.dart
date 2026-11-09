@@ -27,6 +27,9 @@ abstract interface class TaskRepository {
   /// untouched, so an accidental completion leaves nothing behind.
   Future<void> reopen(int id);
 
+  /// Idempotent. Done completes the task; the other two reopen it first.
+  Future<void> setProgress(int id, TaskProgress progress);
+
   Future<int> addSubtask(int taskId, String title);
 
   Future<void> renameSubtask(int id, String title);
