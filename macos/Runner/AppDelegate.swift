@@ -7,6 +7,7 @@ class AppDelegate: FlutterAppDelegate {
 
   // FlutterAppDelegate does not implement this, so there is no super to call.
   override func applicationDidFinishLaunching(_ notification: Notification) {
+    guard !TestHost.isActive else { return }
     menuBar.install()
   }
 
@@ -34,6 +35,13 @@ class AppDelegate: FlutterAppDelegate {
     mainFlutterWindow?.makeKeyAndOrderFront(nil)
     (mainFlutterWindow as? MainFlutterWindow)?.open(path)
   }
+}
+
+/// XCTest hosts macos/RunnerTests in this Debug app, which has the real bundle id
+/// and so the real data container. While it does, neither Flutter engine starts
+/// (no database, no notifications) and the tests exercise native code only.
+enum TestHost {
+  static let isActive = ProcessInfo.processInfo.environment.keys.contains { $0.hasPrefix("XCTest") }
 }
 
 /// The menu bar extra. Its panel runs a second, small Flutter app
@@ -199,7 +207,9 @@ final class MenuBar: NSObject, NSWindowDelegate {
   /// Key down and up for [keyCode] with [modifiers]. CGEvent gives an arrow
   /// (and the other keypad and fn keys) NumericPad and SecondaryFn, like a
   /// real press: the modifiers are added to those, since a hotkey on an
-  /// arrow does not fire without them.
+  /// arrow does not fire without them. Any other default flag is dropped: a
+  /// nil source also copies the modifiers the session last reported (a
+  /// shortcut posted moments ago leaves ⌘⌃⌥ there), which would ride along.
   static func shortcutEvents(keyCode: CGKeyCode, modifiers: [String]) -> [CGEvent] {
     let masks: [String: CGEventFlags] = [
       "command": .maskCommand, "control": .maskControl,
@@ -209,8 +219,8 @@ final class MenuBar: NSObject, NSWindowDelegate {
       if let mask = masks[name] { flags.insert(mask) }
     }
     return [true, false].compactMap { down in
-      let event = CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: down)
-      event?.flags.formUnion(flags)
+      guard let event = CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: down) else { return nil }
+      event.flags = event.flags.intersection([.maskNumericPad, .maskSecondaryFn]).union(flags)
       return event
     }
   }

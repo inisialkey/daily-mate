@@ -5,6 +5,15 @@ import XCTest
 
 class RunnerTests: XCTestCase {
 
+  // The test host is the Debug app with the real bundle id. Flutter must stay
+  // off in it, or every run would open the user's real database.
+  func testTestHostRunsWithoutFlutter() {
+    XCTAssertTrue(TestHost.isActive)
+    let windows = NSApp.windows.compactMap { $0 as? MainFlutterWindow }
+    XCTAssertEqual(windows.count, 1)
+    XCTAssertNil(windows.first?.contentViewController)
+  }
+
   // A real arrow press carries NumericPad and SecondaryFn; without them a
   // global shortcut on an arrow (MixMusic's next/previous) never fires.
   func testShortcutOnAnArrowKeepsTheArrowFlags() {
