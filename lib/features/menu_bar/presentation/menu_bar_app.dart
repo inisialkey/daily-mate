@@ -230,6 +230,14 @@ class _NowPlayingState extends State<_NowPlaying> {
   final MusicPlayer _player = sl();
   late final Stream<NowPlaying?> _track = _player.watchNowPlaying();
 
+  /// macOS refused the last key press: DailyMate lacks Accessibility.
+  bool _refused = false;
+
+  Future<void> _press(MediaCommand command) async {
+    final sent = await _player.send(command);
+    if (mounted && sent == _refused) setState(() => _refused = !sent);
+  }
+
   @override
   Widget build(BuildContext context) => StreamBuilder(
     stream: _track,
@@ -244,7 +252,7 @@ class _NowPlayingState extends State<_NowPlaying> {
       );
       Widget key(MediaCommand command, IconData icon, String tooltip) =>
           IconButton(
-            onPressed: () => unawaited(_player.send(command)),
+            onPressed: () => unawaited(_press(command)),
             icon: Icon(icon, size: IconSizes.lg),
             tooltip: tooltip,
             visualDensity: VisualDensity.compact,
@@ -256,56 +264,87 @@ class _NowPlayingState extends State<_NowPlaying> {
           color: context.colors.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(Radii.lg),
         ),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(Radii.sm),
-              child: SizedBox.square(
-                dimension: Space.xxxl,
-                child: artworkUrl == null
-                    ? placeholder
-                    : Image.network(
-                        artworkUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => placeholder,
-                      ),
-              ),
-            ),
-            const SizedBox(width: Space.sm),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    track.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: context.text.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+            Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(Radii.sm),
+                  child: SizedBox.square(
+                    dimension: Space.xxxl,
+                    child: artworkUrl == null
+                        ? placeholder
+                        : Image.network(
+                            artworkUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => placeholder,
+                          ),
                   ),
-                  if (track.artist.isNotEmpty)
-                    Text(
-                      track.artist,
-                      maxLines: 1,
+                ),
+                const SizedBox(width: Space.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        track.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.text.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (track.artist.isNotEmpty)
+                        Text(
+                          track.artist,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.text.bodySmall?.copyWith(
+                            color: context.palette.textMuted,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                key(
+                  MediaCommand.previous,
+                  CupertinoIcons.backward_end_fill,
+                  'Previous',
+                ),
+                if (track.playing)
+                  key(
+                    MediaCommand.playPause,
+                    CupertinoIcons.pause_fill,
+                    'Pause',
+                  )
+                else
+                  key(MediaCommand.playPause, CupertinoIcons.play_fill, 'Play'),
+                key(MediaCommand.next, CupertinoIcons.forward_end_fill, 'Next'),
+              ],
+            ),
+            if (_refused)
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Media keys need Accessibility access. Allow '
+                      'DailyMate (already on? remove it with − and add it '
+                      'again), then reopen it.',
+                      maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                       style: context.text.bodySmall?.copyWith(
                         color: context.palette.textMuted,
                       ),
                     ),
+                  ),
+                  TextButton(
+                    onPressed: () =>
+                        unawaited(_player.openPermissionSettings()),
+                    child: const Text('Open Settings'),
+                  ),
                 ],
               ),
-            ),
-            key(
-              MediaCommand.previous,
-              CupertinoIcons.backward_end_fill,
-              'Previous',
-            ),
-            if (track.playing)
-              key(MediaCommand.playPause, CupertinoIcons.pause_fill, 'Pause')
-            else
-              key(MediaCommand.playPause, CupertinoIcons.play_fill, 'Play'),
-            key(MediaCommand.next, CupertinoIcons.forward_end_fill, 'Next'),
           ],
         ),
       );

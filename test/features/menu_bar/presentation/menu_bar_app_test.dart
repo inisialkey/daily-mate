@@ -121,6 +121,33 @@ void main() {
     ]);
   });
 
+  testWidgets('asks for Accessibility when macOS refuses the media keys', (
+    tester,
+  ) async {
+    final music = FakeMusicPlayer()
+      ..track = (
+        title: 'Arjuna',
+        artist: 'Dewa',
+        artworkUrl: null,
+        playing: true,
+      )
+      ..allowed = false;
+    await pumpApp(tester, size: popover, app: const MenuBarApp(), music: music);
+
+    expect(find.text('Open Settings'), findsNothing);
+    await tester.tap(find.byTooltip('Next'));
+    await tester.pump();
+    expect(find.textContaining('Accessibility'), findsOneWidget);
+    await tester.tap(find.text('Open Settings'));
+    expect(music.openedSettings, 1);
+
+    music.allowed = true;
+    await tester.tap(find.byTooltip('Next'));
+    await tester.pump();
+    expect(find.text('Open Settings'), findsNothing);
+    expect(music.sent, [MediaCommand.next]);
+  });
+
   testWidgets('hides the music controls while nothing plays', (tester) async {
     await pumpApp(tester, size: popover, app: const MenuBarApp());
 

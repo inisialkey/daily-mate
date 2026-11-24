@@ -4,9 +4,19 @@ class FakeMusicPlayer implements MusicPlayer {
   NowPlaying? track;
   final sent = <MediaCommand>[];
 
+  /// False plays macOS refusing media keys without the Accessibility grant.
+  bool allowed = true;
+  int openedSettings = 0;
+
   @override
   Stream<NowPlaying?> watchNowPlaying() => Stream.value(track);
 
   @override
-  Future<void> send(MediaCommand command) async => sent.add(command);
+  Future<bool> send(MediaCommand command) async {
+    if (allowed) sent.add(command);
+    return allowed;
+  }
+
+  @override
+  Future<void> openPermissionSettings() async => openedSettings++;
 }

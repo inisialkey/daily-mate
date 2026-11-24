@@ -12,10 +12,31 @@ abstract final class MenuBarChannel {
   static Future<bool> isRunning(String bundleId) async =>
       await _invoke<bool>('isRunning', bundleId) ?? false;
 
-  /// Presses the media key `previous`, `playPause` or `next`. The first
-  /// press asks for the Accessibility permission instead.
-  static Future<void> pressMediaKey(String key) =>
-      _invoke<void>('pressMediaKey', key);
+  /// Presses the media key `previous`, `playPause` or `next`; false when
+  /// macOS refuses because the Accessibility permission is missing.
+  /// A failed call counts as refused, so the panel never shows a press
+  /// that went nowhere.
+  static Future<bool> pressMediaKey(String key) => _press('pressMediaKey', key);
+
+  /// Presses [keyCode] (`kVK_*`) with [modifiers] (`command`, `control`,
+  /// `option`, `shift`), like [pressMediaKey].
+  static Future<bool> pressShortcut(int keyCode, List<String> modifiers) =>
+      _press('pressShortcut', {'keyCode': keyCode, 'modifiers': modifiers});
+
+  static Future<bool> _press(String method, Object arguments) async {
+    try {
+      return await _channel.invokeMethod<bool>(method, arguments) ?? false;
+    } on MissingPluginException {
+      return true; // Widget tests have no native side.
+    } on PlatformException catch (error, stack) {
+      AppLogger.w('Menu bar channel "$method" failed', error, stack);
+      return false;
+    }
+  }
+
+  /// Closes the popover and opens Privacy & Security > Accessibility.
+  static Future<void> openAccessibilitySettings() =>
+      _invoke<void>('openAccessibilitySettings', null);
 
   static Future<T?> _invoke<T>(String method, Object? arguments) async {
     try {

@@ -118,7 +118,16 @@ final class MenuBar: NSObject, NSWindowDelegate {
         let id = call.arguments as? String ?? ""
         result(!NSRunningApplication.runningApplications(withBundleIdentifier: id).isEmpty)
       case "pressMediaKey":
-        Self.pressMediaKey(call.arguments as? String)
+        result(Self.pressMediaKey(call.arguments as? String))
+      case "pressShortcut":
+        let args = call.arguments as? [String: Any]
+        result(Self.pressShortcut(
+          keyCode: args?["keyCode"] as? Int,
+          modifiers: args?["modifiers"] as? [String] ?? []))
+      case "openAccessibilitySettings":
+        self?.hide()
+        let pane = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+        if let url = URL(string: pane) { NSWorkspace.shared.open(url) }
         result(nil)
       default:
         result(FlutterMethodNotImplemented)
@@ -153,13 +162,14 @@ final class MenuBar: NSObject, NSWindowDelegate {
 
   /// Presses a media key like F7–F9 do; the Now Playing app takes it.
   /// Posting events needs Privacy & Security > Accessibility, which the
-  /// first press asks for.
-  private static func pressMediaKey(_ name: String?) {
+  /// first press asks for. False when that grant is missing; macOS asks
+  /// only once, so later refusals are silent unless the panel says so.
+  private static func pressMediaKey(_ name: String?) -> Bool {
     // NX_KEYTYPE_PLAY, _NEXT and _PREVIOUS from IOKit's ev_keymap.h.
-    guard let key = ["playPause": 16, "next": 17, "previous": 18][name ?? ""] else { return }
+    guard let key = ["playPause": 16, "next": 17, "previous": 18][name ?? ""] else { return true }
     guard CGPreflightPostEventAccess() else {
       CGRequestPostEventAccess()
-      return
+      return false
     }
     for down in [true, false] {
       let event = NSEvent.otherEvent(
@@ -169,6 +179,31 @@ final class MenuBar: NSObject, NSWindowDelegate {
         data1: key << 16 | (down ? 0xa : 0xb) << 8, data2: -1)
       event?.cgEvent?.post(tap: .cghidEventTap)
     }
+    return true
+  }
+
+  /// Presses a key combination, such as a music app's global shortcut; its
+  /// owner takes it before the frontmost app. Same permission as above.
+  private static func pressShortcut(keyCode: Int?, modifiers: [String]) -> Bool {
+    guard let keyCode = keyCode, let key = CGKeyCode(exactly: keyCode) else { return false }
+    guard CGPreflightPostEventAccess() else {
+      CGRequestPostEventAccess()
+      return false
+    }
+    let masks: [String: CGEventFlags] = [
+      "command": .maskCommand, "control": .maskControl,
+      "option": .maskAlternate, "shift": .maskShift,
+    ]
+    let flags = modifiers.reduce(into: CGEventFlags()) { flags, name in
+      if let mask = masks[name] { flags.insert(mask) }
+    }
+    for down in [true, false] {
+      let event = CGEvent(
+        keyboardEventSource: nil, virtualKey: key, keyDown: down)
+      event?.flags = flags
+      event?.post(tap: .cghidEventTap)
+    }
+    return true
   }
 
   // A click anywhere else, ⌘Tab or opening the main window closes it.

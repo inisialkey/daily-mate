@@ -30,6 +30,22 @@ if [[ ! -d "$BUILT" ]]; then
   exit 1
 fi
 
+# Flutter signs ad hoc, and an ad hoc signature is pinned to the build's
+# cdhash: macOS then forgets the Accessibility grant (media keys) on every
+# rebuild. A certificate makes the requirement identity-based, so the grant
+# survives. Override with DAILYMATE_SIGN_IDENTITY (name or SHA-1). Signed
+# here, before the installed app is touched, so a failure leaves it intact.
+IDENTITY="${DAILYMATE_SIGN_IDENTITY:-F86A6DB1495A4EC524A13CB6C1D0B90135444716}"
+identities="$(security find-identity -v -p codesigning)"
+if grep -F "$IDENTITY" <<<"$identities" >/dev/null; then
+  codesign --force --deep --sign "$IDENTITY" \
+    --preserve-metadata=entitlements "$BUILT"
+  codesign --verify --deep --strict "$BUILT"
+else
+  echo "Signing identity $IDENTITY not found: kept ad hoc. Accessibility" \
+    "(media keys) must be granted again after this install." >&2
+fi
+
 if pgrep -x DailyMate >/dev/null; then
   echo "Quitting the running DailyMate…"
   osascript -e 'quit app "DailyMate"' >/dev/null 2>&1 || true
