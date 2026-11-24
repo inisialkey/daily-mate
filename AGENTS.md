@@ -59,10 +59,6 @@ end of any turn that edited a file. Fix the cause; never weaken the check to pas
   never a deleted database.
 - Swift Package Manager is disabled in this machine's Flutter config; macOS plugins resolve
   through CocoaPods (`macos/Podfile`).
-- The harness plugin is pinned per project and nothing announces a new release. One repo ran a
-  version three releases old for three weeks — gate included, so it could pass green while
-  checking nothing — and the only symptom was silence. From inside this repo:
-  `claude plugin update harness@ai-kit --scope project`, then restart the session.
 
 ## Lessons
 
