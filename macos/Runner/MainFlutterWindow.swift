@@ -5,6 +5,8 @@ class MainFlutterWindow: NSWindow {
   private var channel: FlutterMethodChannel?
 
   override func awakeFromNib() {
+    // Under XCTest the main engine must not start: it would open the real database.
+    guard !TestHost.isActive else { return super.awakeFromNib() }
     let flutterViewController = FlutterViewController()
     self.contentViewController = flutterViewController
     self.setContentSize(NSSize(width: 1280, height: 820))

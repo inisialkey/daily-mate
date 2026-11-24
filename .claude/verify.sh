@@ -24,11 +24,30 @@ DART="${DART:-dart}"
 # that equivalence is the only thing this pin protects.
 if [ -f .fvmrc ] && command -v fvm >/dev/null 2>&1; then FLUTTER="fvm flutter"; DART="fvm dart"; fi
 
+# Native tests (macos/RunnerTests). XCTest hosts them in the Debug app, which has the real
+# bundle id and so the real data container; TestHost in AppDelegate.swift keeps both Flutter
+# engines off there, so the user's database is never opened. 20–70 s, so they run only when
+# native code changed (collect loop and step 7).
+native_tests() {
+  local log
+  log=$(mktemp)
+  if ! xcodebuild test -quiet -workspace macos/Runner.xcworkspace -scheme Runner \
+      -only-testing:RunnerTests -destination 'platform=macOS' >"$log" 2>&1; then
+    grep -E 'error:|failed|Failing tests' "$log" | head -30 >&2 || true
+    tail -n 15 "$log" >&2
+    echo "^ native tests failed (macos/RunnerTests)." >&2
+    rm -f "$log"
+    return 1
+  fi
+  rm -f "$log"
+}
+
 # --- Collect the changed Dart files, minus generated ones (machine-owned) -------
 # ponytail: no mapfile/readarray — macOS ships bash 3.2 and both are bash 4+.
 CHANGED=""
 TOOLING=0   # analyzer/deps config changed -> analysis can shift project-wide
 L10N=0      # an .arb or l10n.yaml changed -> the generated strings are stale
+NATIVE=0    # something under macos/ changed -> the native tests run (step 7)
 while IFS= read -r f; do
   [ -n "$f" ] || continue
   case "$f" in
@@ -37,14 +56,27 @@ while IFS= read -r f; do
     *.arb) L10N=1 ;;
     l10n.yaml) TOOLING=1; L10N=1 ;;
     pubspec.yaml|pubspec.lock|analysis_options.yaml|build.yaml) TOOLING=1 ;;
+    macos/*) NATIVE=1 ;;
   esac
 done <<< "${CLAUDE_CHANGED_FILES:-}"
+
+# An unscoped run cannot see what the turn changed. It runs the native tests when this branch
+# or the working tree touches macos/ compared with the default branch, and when it cannot tell.
+if [ -z "${CLAUDE_CHANGED_FILES+x}" ]; then
+  base=$(git merge-base HEAD origin/HEAD 2>/dev/null || true)
+  if [ -z "$base" ] || ! git diff --quiet "$base" -- macos 2>/dev/null ||
+    [ -n "$(git ls-files --others --exclude-standard -- macos 2>/dev/null)" ]; then
+    NATIVE=1
+  fi
+fi
 
 # --- 0. A turn that touched nothing Dart-relevant has nothing to verify --------
 # Distinguish set-but-irrelevant (docs/CI/asset edits — skip everything) from
 # unset (manual run — run everything). Without this, every README edit paid a
-# project-wide format + analyze + the FULL test suite.
+# project-wide format + analyze + the FULL test suite. A native-only change runs
+# just the native tests.
 if [ -n "${CLAUDE_CHANGED_FILES+x}" ] && [ -z "$CHANGED" ] && [ "$TOOLING" -eq 0 ] && [ "$L10N" -eq 0 ]; then
+  if [ "$NATIVE" -eq 1 ]; then native_tests; fi
   exit 0
 fi
 
@@ -205,6 +237,9 @@ elif [ -n "$TARGETS" ]; then
   # shellcheck disable=SC2086
   $FLUTTER test $(printf '%s\n' $TARGETS | sort -u | tr '\n' ' ')
 fi
+
+# --- 7. Native tests, when native code changed ----------------------------------
+if [ "$NATIVE" -eq 1 ]; then native_tests; fi
 
 # Add as the project grows:
 #   dart pub global run import_lint   — resolves imports properly, so it sees the
