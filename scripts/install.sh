@@ -48,6 +48,19 @@ if [[ -d "$DEST" ]]; then
   rm -rf "$DEST"
 fi
 ditto "$BUILT" "$DEST"
+# Flutter signs ad hoc, and an ad hoc signature is pinned to the build's
+# cdhash: macOS then forgets the Accessibility grant (media keys) on every
+# rebuild. A certificate makes the requirement identity-based, so the grant
+# survives. Override with DAILYMATE_SIGN_IDENTITY (name or SHA-1).
+IDENTITY="${DAILYMATE_SIGN_IDENTITY:-F86A6DB1495A4EC524A13CB6C1D0B90135444716}"
+if security find-identity -v -p codesigning | grep -qF "$IDENTITY"; then
+  codesign --force --deep --sign "$IDENTITY" \
+    --preserve-metadata=entitlements "$DEST"
+  codesign --verify --deep --strict "$DEST"
+else
+  echo "Signing identity $IDENTITY not found: kept ad hoc. Accessibility" \
+    "(media keys) must be granted again after this install." >&2
+fi
 # ditto keeps the build's dates, and macOS keys its icon cache on the bundle's
 # date: without this, Finder and the Dock keep showing the previous icon.
 touch "$DEST"

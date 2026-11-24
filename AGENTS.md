@@ -30,7 +30,7 @@ end of any turn that edited a file. Fix the cause; never weaken the check to pas
   Flutter engine (`menuBarMain`) that shares the drift database isolate.
   Installed to `/Applications/DailyMate.app` with `scripts/install.sh` (2026-10-22).
   The panel also shows MixMusic's track with media keys (installed, works, 2026-10-24).
-- Last green at: "MixMusic play/pause state", 186 tests (2026-10-24)
+- Last green at: "Media keys survive rebuilds (signed install, Accessibility hint)", 197 tests (2026-11-24)
 - Blocked by: —
 
 ## Commands the agent cannot guess
@@ -96,7 +96,12 @@ end of any turn that edited a file. Fix the cause; never weaken the check to pas
   `MRMediaRemoteSendCommand` both silently do nothing (tested on 26.5). MixMusic is read from
   its own `queue.json`; controls are posted media keys (`CGEvent`, Accessibility grant).
   A running DailyMate keeps refusing after the grant: it works only once relaunched.
-  The grant survives a reinstall with `scripts/install.sh`, ad hoc signing and all.
+  TCC pins the grant to the signature's designated requirement; ad hoc that is the
+  cdhash, so every rebuild lost it (buttons silently dead, 2026-11-24). Posting
+  events checks `kTCCServicePostEvent`, a separate entry from Accessibility: reset a
+  stale one with `tccutil reset PostEvent com.dailymate.dailyMate`.
+  `scripts/install.sh` re-signs with an Apple Development identity so the grant
+  survives rebuilds; the panel shows an "Open Settings" hint when macOS refuses.
 
 ## Repo etiquette
 

@@ -14,5 +14,10 @@ abstract interface class MusicPlayer {
   /// The current track; null while the app is not running.
   Stream<NowPlaying?> watchNowPlaying();
 
-  Future<void> send(MediaCommand command);
+  /// False when macOS refuses to post media keys: DailyMate lacks the
+  /// Accessibility grant.
+  Future<bool> send(MediaCommand command);
+
+  /// Shows the system settings where that grant is given.
+  Future<void> openPermissionSettings();
 }

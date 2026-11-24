@@ -80,6 +80,7 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized();
     late File queue;
     late List<String> pressed;
+    late bool allowed;
 
     setUp(() {
       final dir = Directory.systemTemp.createTempSync('mixmusic');
@@ -92,12 +93,14 @@ void main() {
           }),
         );
       pressed = [];
+      allowed = true;
       const channel = MethodChannel('dailymate/menu_bar');
       final messenger =
           TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             ..setMockMethodCallHandler(channel, (call) async {
               if (call.method == 'pressMediaKey') {
                 pressed.add(call.arguments as String);
+                return allowed;
               }
               return call.method == 'isRunning';
             });
@@ -127,6 +130,18 @@ void main() {
       await player.send(MediaCommand.playPause);
       expect(pressed, ['playPause']);
       expect(await playing(player), true);
+    });
+
+    test('a refused play/pause says so and keeps the state', () async {
+      allowed = false;
+      queue.setLastModifiedSync(
+        DateTime.now().subtract(const Duration(seconds: 10)),
+      );
+      final player = MixMusicPlayer(queue: queue);
+      expect(await playing(player), false);
+
+      expect(await player.send(MediaCommand.playPause), false);
+      expect(await playing(player), false);
     });
   });
 }

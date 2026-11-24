@@ -61,15 +61,20 @@ class MixMusicPlayer implements MusicPlayer {
   }
 
   @override
-  Future<void> send(MediaCommand command) async {
-    if (command == MediaCommand.playPause) {
+  Future<bool> send(MediaCommand command) async {
+    final sent = await MenuBarChannel.pressMediaKey(command.name);
+    if (sent && command == MediaCommand.playPause) {
       _pressed = (
         playing: !(_last?.playing ?? false),
         until: clock.now().add(const Duration(seconds: 5)),
       );
     }
-    await MenuBarChannel.pressMediaKey(command.name);
+    return sent;
   }
+
+  @override
+  Future<void> openPermissionSettings() =>
+      MenuBarChannel.openAccessibilitySettings();
 }
 
 /// The current track of MixMusic's saved queue; null for an empty queue or
