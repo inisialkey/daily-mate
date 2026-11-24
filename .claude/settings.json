@@ -1,9 +1,12 @@
 {
-  "enabledPlugins": {
-    "harness@ai-kit": true,
-    "flutter@ai-kit": true
-  },
   "permissions": {
+    "allow": [
+      "Bash(bash .claude/verify.sh)",
+      "Bash(dart format *)",
+      "Bash(flutter analyze *)",
+      "Bash(flutter test *)",
+      "Bash(flutter pub get)"
+    ],
     "deny": [
       "Read(./**/.env*)",
       "Read(./**/*.pem)",
@@ -30,5 +33,9 @@
       "Edit(./**/*.config.dart)",
       "Write(./**/*.config.dart)"
     ]
+  },
+  "enabledPlugins": {
+    "harness@ai-kit": false,
+    "flutter@ai-kit": true
   }
 }
