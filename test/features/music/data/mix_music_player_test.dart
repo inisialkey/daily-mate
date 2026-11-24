@@ -132,6 +132,19 @@ void main() {
       expect(await playing(player), true);
     });
 
+    test('a failed key press counts as refused', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            const MethodChannel('dailymate/menu_bar'),
+            (call) async => call.method == 'pressMediaKey'
+                ? throw PlatformException(code: 'failed')
+                : call.method == 'isRunning',
+          );
+      final player = MixMusicPlayer(queue: queue);
+
+      expect(await player.send(MediaCommand.next), false);
+    });
+
     test('a refused play/pause says so and keeps the state', () async {
       allowed = false;
       queue.setLastModifiedSync(

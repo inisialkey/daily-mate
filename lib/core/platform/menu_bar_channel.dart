@@ -14,8 +14,18 @@ abstract final class MenuBarChannel {
 
   /// Presses the media key `previous`, `playPause` or `next`; false when
   /// macOS refuses because the Accessibility permission is missing.
-  static Future<bool> pressMediaKey(String key) async =>
-      await _invoke<bool>('pressMediaKey', key) ?? true;
+  /// A failed call counts as refused, so the panel never shows a press
+  /// that went nowhere.
+  static Future<bool> pressMediaKey(String key) async {
+    try {
+      return await _channel.invokeMethod<bool>('pressMediaKey', key) ?? false;
+    } on MissingPluginException {
+      return true; // Widget tests have no native side.
+    } on PlatformException catch (error, stack) {
+      AppLogger.w('Menu bar channel "pressMediaKey" failed', error, stack);
+      return false;
+    }
+  }
 
   /// Closes the popover and opens Privacy & Security > Accessibility.
   static Future<void> openAccessibilitySettings() =>

@@ -329,8 +329,9 @@ class _NowPlayingState extends State<_NowPlaying> {
                   Expanded(
                     child: Text(
                       'Media keys need Accessibility access. Allow '
-                      'DailyMate, then reopen it.',
-                      maxLines: 2,
+                      'DailyMate (already on? remove it with − and add it '
+                      'again), then reopen it.',
+                      maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                       style: context.text.bodySmall?.copyWith(
                         color: context.palette.textMuted,

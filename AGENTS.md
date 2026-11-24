@@ -30,7 +30,7 @@ end of any turn that edited a file. Fix the cause; never weaken the check to pas
   Flutter engine (`menuBarMain`) that shares the drift database isolate.
   Installed to `/Applications/DailyMate.app` with `scripts/install.sh` (2026-10-22).
   The panel also shows MixMusic's track with media keys (installed, works, 2026-10-24).
-- Last green at: "Media keys survive rebuilds (signed install, Accessibility hint)", 197 tests (2026-11-24)
+- Last green at: "Media keys survive rebuilds (signed install, Accessibility hint)", 198 tests (2026-11-24)
 - Blocked by: —
 
 ## Commands the agent cannot guess
@@ -100,8 +100,6 @@ end of any turn that edited a file. Fix the cause; never weaken the check to pas
   cdhash, so every rebuild lost it (buttons silently dead, 2026-11-24). Posting
   events checks `kTCCServicePostEvent`, a separate entry from Accessibility: reset a
   stale one with `tccutil reset PostEvent com.dailymate.dailyMate`.
-  `scripts/install.sh` re-signs with an Apple Development identity so the grant
-  survives rebuilds; the panel shows an "Open Settings" hint when macOS refuses.
 
 ## Repo etiquette
 
