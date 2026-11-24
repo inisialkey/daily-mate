@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:clock/clock.dart';
+import 'package:daily_mate/core/logging/app_logger.dart';
 import 'package:daily_mate/core/platform/menu_bar_channel.dart';
 import 'package:daily_mate/features/music/domain/music_player.dart';
 
@@ -66,7 +67,11 @@ class MixMusicPlayer implements MusicPlayer {
   @override
   Future<bool> send(MediaCommand command) async {
     // Read on every press, so a shortcut changed in MixMusic applies at once.
-    final hotkey = await _shortcut(command);
+    // Without MixMusic to take it, the keystroke would reach the panel's text
+    // field or the frontmost app instead.
+    final hotkey = await MenuBarChannel.isRunning(_bundleId)
+        ? await _shortcut(command)
+        : null;
     final sent = hotkey == null
         ? await MenuBarChannel.pressMediaKey(command.name)
         : await MenuBarChannel.pressShortcut(hotkey.keyCode, hotkey.modifiers);
@@ -143,7 +148,12 @@ Hotkey? globalShortcutFromSettings(String source, MediaCommand command) {
     if (jsonDecode(source) case {
       'globalShortcuts': final Map<String, Object?> shortcuts,
     } when shortcuts[action] is String) {
-      return hotkeyFromShortcut(shortcuts[action]! as String);
+      final shortcut = shortcuts[action]! as String;
+      final hotkey = hotkeyFromShortcut(shortcut);
+      if (hotkey == null) {
+        AppLogger.w('MixMusic shortcut "$shortcut" not understood: media key');
+      }
+      return hotkey;
     }
   } on FormatException {
     // Caught mid-write; the media key does this once.
@@ -158,30 +168,36 @@ Hotkey? hotkeyFromShortcut(String shortcut) {
   final parts = shortcut.split('+');
   final modifiers = <String>[];
   for (final part in parts.take(parts.length - 1)) {
-    final modifier = _modifiers[part];
+    final modifier = _modifiers[part.toLowerCase()];
     if (modifier == null) return null;
     modifiers.add(modifier);
   }
   final key = parts.last;
-  final keyCode = _keyCodes[key.length == 1 ? key.toUpperCase() : key];
+  final keyCode = _keyCodes[key.toLowerCase()];
   if (keyCode == null || modifiers.isEmpty) return null;
   return (keyCode: keyCode, modifiers: modifiers);
 }
 
+/// Keyed by lowercase name, as the lookups ignore case.
 const _modifiers = {
-  'Mod': 'command',
-  'Cmd': 'command',
-  'Command': 'command',
-  'Meta': 'command',
-  'Ctrl': 'control',
-  'Control': 'control',
-  'Alt': 'option',
-  'Option': 'option',
-  'Shift': 'shift',
+  'mod': 'command',
+  'cmd': 'command',
+  'command': 'command',
+  'meta': 'command',
+  'ctrl': 'control',
+  'control': 'control',
+  'alt': 'option',
+  'option': 'option',
+  'shift': 'shift',
+};
+
+final Map<String, int> _keyCodes = {
+  for (final MapEntry(:key, :value) in _ansiKeyCodes.entries)
+    key.toLowerCase(): value,
 };
 
 /// `kVK_*` from Carbon's Events.h; letters and symbols by their ANSI position.
-const _keyCodes = {
+const _ansiKeyCodes = {
   'A': 0, 'S': 1, 'D': 2, 'F': 3, 'H': 4, 'G': 5, 'Z': 6, 'X': 7, //
   'C': 8, 'V': 9, 'B': 11, 'Q': 12, 'W': 13, 'E': 14, 'R': 15, 'Y': 16,
   'T': 17, '1': 18, '2': 19, '3': 20, '4': 21, '6': 22, '5': 23, '=': 24,

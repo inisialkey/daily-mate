@@ -185,7 +185,7 @@ final class MenuBar: NSObject, NSWindowDelegate {
   /// Presses a key combination, such as a music app's global shortcut; its
   /// owner takes it before the frontmost app. Same permission as above.
   private static func pressShortcut(keyCode: Int?, modifiers: [String]) -> Bool {
-    guard let keyCode = keyCode else { return true }
+    guard let keyCode = keyCode, let key = CGKeyCode(exactly: keyCode) else { return false }
     guard CGPreflightPostEventAccess() else {
       CGRequestPostEventAccess()
       return false
@@ -199,7 +199,7 @@ final class MenuBar: NSObject, NSWindowDelegate {
     }
     for down in [true, false] {
       let event = CGEvent(
-        keyboardEventSource: nil, virtualKey: CGKeyCode(keyCode), keyDown: down)
+        keyboardEventSource: nil, virtualKey: key, keyDown: down)
       event?.flags = flags
       event?.post(tap: .cghidEventTap)
     }

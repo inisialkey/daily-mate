@@ -30,7 +30,7 @@ end of any turn that edited a file. Fix the cause; never weaken the check to pas
   Flutter engine (`menuBarMain`) that shares the drift database isolate.
   Installed to `/Applications/DailyMate.app` with `scripts/install.sh` (2026-10-22).
   The panel also shows MixMusic's track with media keys (installed, works, 2026-10-24).
-- Last green at: "Panel presses MixMusic's global shortcuts", 205 tests (2026-11-24)
+- Last green at: "Panel presses MixMusic's global shortcuts", 207 tests (2026-11-24)
 - Blocked by: —
 
 ## Commands the agent cannot guess

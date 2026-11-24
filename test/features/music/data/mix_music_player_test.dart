@@ -90,6 +90,13 @@ void main() {
       expect(hotkeyFromShortcut('Mod+7')?.keyCode, 26);
     });
 
+    test('ignores case in modifier and key names', () {
+      final next = hotkeyFromShortcut('mod+CTRL+alt+arrowright');
+      expect(next?.keyCode, 124);
+      expect(next?.modifiers, ['command', 'control', 'option']);
+      expect(hotkeyFromShortcut('Mod+Ctrl+Alt+p')?.keyCode, 35);
+    });
+
     test('rejects an unknown key or a key without modifiers', () {
       expect(hotkeyFromShortcut('Mod+MediaPlayPause'), null);
       expect(hotkeyFromShortcut('P'), null);
@@ -148,6 +155,7 @@ void main() {
     late File settings;
     late List<String> pressed;
     late bool allowed;
+    late bool running;
 
     setUp(() {
       final dir = Directory.systemTemp.createTempSync('mixmusic');
@@ -162,6 +170,7 @@ void main() {
       settings = File('${dir.path}/settings.json');
       pressed = [];
       allowed = true;
+      running = true;
       const channel = MethodChannel('dailymate/menu_bar');
       final messenger =
           TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -175,7 +184,7 @@ void main() {
                 pressed.add('${args['keyCode']} ${args['modifiers']}');
                 return allowed;
               }
-              return call.method == 'isRunning';
+              return call.method == 'isRunning' && running;
             });
       addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
     });
@@ -236,6 +245,19 @@ void main() {
 
       await player.send(MediaCommand.previous);
       expect(pressed, ['previous']);
+    });
+
+    test('never presses a shortcut while MixMusic is not running', () async {
+      settings.writeAsStringSync(
+        jsonEncode({
+          'globalShortcuts': {'player.next': 'Shift+Alt+N'},
+        }),
+      );
+      running = false;
+      final player = MixMusicPlayer(queue: queue);
+
+      await player.send(MediaCommand.next);
+      expect(pressed, ['next']);
     });
 
     test('a refused shortcut says so', () async {
