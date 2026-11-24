@@ -16,13 +16,20 @@ abstract final class MenuBarChannel {
   /// macOS refuses because the Accessibility permission is missing.
   /// A failed call counts as refused, so the panel never shows a press
   /// that went nowhere.
-  static Future<bool> pressMediaKey(String key) async {
+  static Future<bool> pressMediaKey(String key) => _press('pressMediaKey', key);
+
+  /// Presses [keyCode] (`kVK_*`) with [modifiers] (`command`, `control`,
+  /// `option`, `shift`), like [pressMediaKey].
+  static Future<bool> pressShortcut(int keyCode, List<String> modifiers) =>
+      _press('pressShortcut', {'keyCode': keyCode, 'modifiers': modifiers});
+
+  static Future<bool> _press(String method, Object arguments) async {
     try {
-      return await _channel.invokeMethod<bool>('pressMediaKey', key) ?? false;
+      return await _channel.invokeMethod<bool>(method, arguments) ?? false;
     } on MissingPluginException {
       return true; // Widget tests have no native side.
     } on PlatformException catch (error, stack) {
-      AppLogger.w('Menu bar channel "pressMediaKey" failed', error, stack);
+      AppLogger.w('Menu bar channel "$method" failed', error, stack);
       return false;
     }
   }

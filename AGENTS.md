@@ -30,7 +30,7 @@ end of any turn that edited a file. Fix the cause; never weaken the check to pas
   Flutter engine (`menuBarMain`) that shares the drift database isolate.
   Installed to `/Applications/DailyMate.app` with `scripts/install.sh` (2026-10-22).
   The panel also shows MixMusic's track with media keys (installed, works, 2026-10-24).
-- Last green at: "Media keys survive rebuilds (signed install, Accessibility hint)", 198 tests (2026-11-24)
+- Last green at: "Panel presses MixMusic's global shortcuts", 205 tests (2026-11-24)
 - Blocked by: —
 
 ## Commands the agent cannot guess
@@ -94,7 +94,9 @@ end of any turn that edited a file. Fix the cause; never weaken the check to pas
   monochrome artwork is unused.
 - macOS 15.4+ closes MediaRemote to third-party apps: reading Now Playing and
   `MRMediaRemoteSendCommand` both silently do nothing (tested on 26.5). MixMusic is read from
-  its own `queue.json`; controls are posted media keys (`CGEvent`, Accessibility grant).
+  its own `queue.json`. A media key goes to the Now Playing app — a browser tab that
+  played last wins — so controls post MixMusic's own `globalShortcuts` from its
+  `settings.json` (`CGEvent`, Accessibility grant); the media key is only the fallback.
   A running DailyMate keeps refusing after the grant: it works only once relaunched.
   TCC pins the grant to the signature's designated requirement; ad hoc that is the
   cdhash, so every rebuild lost it (buttons silently dead, 2026-11-24). Posting

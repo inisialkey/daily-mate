@@ -119,6 +119,11 @@ final class MenuBar: NSObject, NSWindowDelegate {
         result(!NSRunningApplication.runningApplications(withBundleIdentifier: id).isEmpty)
       case "pressMediaKey":
         result(Self.pressMediaKey(call.arguments as? String))
+      case "pressShortcut":
+        let args = call.arguments as? [String: Any]
+        result(Self.pressShortcut(
+          keyCode: args?["keyCode"] as? Int,
+          modifiers: args?["modifiers"] as? [String] ?? []))
       case "openAccessibilitySettings":
         self?.hide()
         let pane = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
@@ -173,6 +178,30 @@ final class MenuBar: NSObject, NSWindowDelegate {
         timestamp: 0, windowNumber: 0, context: nil, subtype: 8,
         data1: key << 16 | (down ? 0xa : 0xb) << 8, data2: -1)
       event?.cgEvent?.post(tap: .cghidEventTap)
+    }
+    return true
+  }
+
+  /// Presses a key combination, such as a music app's global shortcut; its
+  /// owner takes it before the frontmost app. Same permission as above.
+  private static func pressShortcut(keyCode: Int?, modifiers: [String]) -> Bool {
+    guard let keyCode = keyCode else { return true }
+    guard CGPreflightPostEventAccess() else {
+      CGRequestPostEventAccess()
+      return false
+    }
+    let masks: [String: CGEventFlags] = [
+      "command": .maskCommand, "control": .maskControl,
+      "option": .maskAlternate, "shift": .maskShift,
+    ]
+    let flags = modifiers.reduce(into: CGEventFlags()) { flags, name in
+      if let mask = masks[name] { flags.insert(mask) }
+    }
+    for down in [true, false] {
+      let event = CGEvent(
+        keyboardEventSource: nil, virtualKey: CGKeyCode(keyCode), keyDown: down)
+      event?.flags = flags
+      event?.post(tap: .cghidEventTap)
     }
     return true
   }

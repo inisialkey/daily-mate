@@ -76,9 +76,76 @@ void main() {
     ));
   });
 
+  group('hotkeyFromShortcut', () {
+    test('reads MixMusic modifiers and keys as macOS key codes', () {
+      final toggle = hotkeyFromShortcut('Mod+Ctrl+Alt+P');
+      expect(toggle?.keyCode, 35);
+      expect(toggle?.modifiers, ['command', 'control', 'option']);
+      expect(hotkeyFromShortcut('Mod+Ctrl+Alt+ArrowRight')?.keyCode, 124);
+      expect(hotkeyFromShortcut('Mod+Ctrl+Alt+ArrowLeft')?.keyCode, 123);
+      final space = hotkeyFromShortcut('Shift+Alt+Space');
+      expect(space?.keyCode, 49);
+      expect(space?.modifiers, ['shift', 'option']);
+      expect(hotkeyFromShortcut('Ctrl+F8')?.keyCode, 100);
+      expect(hotkeyFromShortcut('Mod+7')?.keyCode, 26);
+    });
+
+    test('rejects an unknown key or a key without modifiers', () {
+      expect(hotkeyFromShortcut('Mod+MediaPlayPause'), null);
+      expect(hotkeyFromShortcut('P'), null);
+      expect(hotkeyFromShortcut('Hyper+P'), null);
+      expect(hotkeyFromShortcut(''), null);
+    });
+  });
+
+  group('globalShortcutFromSettings', () {
+    final settings = jsonEncode({
+      'mediaKeys': true,
+      'globalShortcuts': {
+        'player.toggle': 'Mod+Ctrl+Alt+P',
+        'player.next': 'Mod+Ctrl+Alt+ArrowRight',
+        'player.previous': 'Mod+Ctrl+Alt+ArrowLeft',
+      },
+    });
+
+    test('maps each command to its MixMusic action', () {
+      expect(
+        globalShortcutFromSettings(settings, MediaCommand.playPause)?.keyCode,
+        35,
+      );
+      expect(
+        globalShortcutFromSettings(settings, MediaCommand.next)?.keyCode,
+        124,
+      );
+      expect(
+        globalShortcutFromSettings(settings, MediaCommand.previous)?.keyCode,
+        123,
+      );
+    });
+
+    test('is null without shortcuts or for a broken file', () {
+      expect(
+        globalShortcutFromSettings('{"mediaKeys": true}', MediaCommand.next),
+        null,
+      );
+      expect(
+        globalShortcutFromSettings(
+          '{"globalShortcuts": {}}',
+          MediaCommand.next,
+        ),
+        null,
+      );
+      expect(
+        globalShortcutFromSettings('{"globalSho', MediaCommand.next),
+        null,
+      );
+    });
+  });
+
   group('MixMusicPlayer', () {
     TestWidgetsFlutterBinding.ensureInitialized();
     late File queue;
+    late File settings;
     late List<String> pressed;
     late bool allowed;
 
@@ -92,6 +159,7 @@ void main() {
             'index': 0,
           }),
         );
+      settings = File('${dir.path}/settings.json');
       pressed = [];
       allowed = true;
       const channel = MethodChannel('dailymate/menu_bar');
@@ -100,6 +168,11 @@ void main() {
             ..setMockMethodCallHandler(channel, (call) async {
               if (call.method == 'pressMediaKey') {
                 pressed.add(call.arguments as String);
+                return allowed;
+              }
+              if (call.method == 'pressShortcut') {
+                final args = call.arguments as Map<Object?, Object?>;
+                pressed.add('${args['keyCode']} ${args['modifiers']}');
                 return allowed;
               }
               return call.method == 'isRunning';
@@ -130,6 +203,52 @@ void main() {
       await player.send(MediaCommand.playPause);
       expect(pressed, ['playPause']);
       expect(await playing(player), true);
+    });
+
+    test("presses MixMusic's own shortcut, read on every press", () async {
+      final player = MixMusicPlayer(queue: queue);
+      settings.writeAsStringSync(
+        jsonEncode({
+          'globalShortcuts': {'player.next': 'Mod+Ctrl+Alt+ArrowRight'},
+        }),
+      );
+      expect(await player.send(MediaCommand.next), true);
+
+      settings.writeAsStringSync(
+        jsonEncode({
+          'globalShortcuts': {'player.next': 'Shift+Alt+N'},
+        }),
+      );
+      await player.send(MediaCommand.next);
+      expect(pressed, [
+        '124 [command, control, option]',
+        '45 [shift, option]',
+      ]);
+    });
+
+    test('falls back to the media key without a shortcut', () async {
+      settings.writeAsStringSync(
+        jsonEncode({
+          'globalShortcuts': {'player.next': 'Mod+Ctrl+Alt+ArrowRight'},
+        }),
+      );
+      final player = MixMusicPlayer(queue: queue);
+
+      await player.send(MediaCommand.previous);
+      expect(pressed, ['previous']);
+    });
+
+    test('a refused shortcut says so', () async {
+      allowed = false;
+      settings.writeAsStringSync(
+        jsonEncode({
+          'globalShortcuts': {'player.toggle': 'Mod+Ctrl+Alt+P'},
+        }),
+      );
+      final player = MixMusicPlayer(queue: queue);
+
+      expect(await player.send(MediaCommand.playPause), false);
+      expect(pressed, ['35 [command, control, option]']);
     });
 
     test('a failed key press counts as refused', () async {
