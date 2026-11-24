@@ -42,6 +42,10 @@ end of any turn that edited a file. Fix the cause; never weaken the check to pas
 - Visual review on the real engine: `flutter test integration_test/visual_tour_test.dart -d macos`.
   PNGs land in `~/Library/Containers/com.dailymate.dailyMate/Data/tmp/dailymate_tour/`
   (sandboxed app; `screencapture` fails here — no Screen Recording permission).
+- Native tests (`macos/RunnerTests`, not in the gate):
+  `xcodebuild test -workspace macos/Runner.xcworkspace -scheme Runner -only-testing:RunnerTests -destination 'platform=macOS'`.
+  The test host is the Debug app, same bundle id: it launches against the real data
+  container. Run it on purpose, not in a loop.
 - Schema change: bump `schemaVersion`, `dart run drift_dev make-migrations`,
   `dart run drift_dev schema generate drift_schemas/default/ test/drift/default/generated/`,
   then add a `migrateAndValidate` test from every older version.
