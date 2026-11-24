@@ -190,6 +190,17 @@ final class MenuBar: NSObject, NSWindowDelegate {
       CGRequestPostEventAccess()
       return false
     }
+    for event in shortcutEvents(keyCode: key, modifiers: modifiers) {
+      event.post(tap: .cghidEventTap)
+    }
+    return true
+  }
+
+  /// Key down and up for [keyCode] with [modifiers]. CGEvent gives an arrow
+  /// (and the other keypad and fn keys) NumericPad and SecondaryFn, like a
+  /// real press: the modifiers are added to those, since a hotkey on an
+  /// arrow does not fire without them.
+  static func shortcutEvents(keyCode: CGKeyCode, modifiers: [String]) -> [CGEvent] {
     let masks: [String: CGEventFlags] = [
       "command": .maskCommand, "control": .maskControl,
       "option": .maskAlternate, "shift": .maskShift,
@@ -197,13 +208,11 @@ final class MenuBar: NSObject, NSWindowDelegate {
     let flags = modifiers.reduce(into: CGEventFlags()) { flags, name in
       if let mask = masks[name] { flags.insert(mask) }
     }
-    for down in [true, false] {
-      let event = CGEvent(
-        keyboardEventSource: nil, virtualKey: key, keyDown: down)
-      event?.flags = flags
-      event?.post(tap: .cghidEventTap)
+    return [true, false].compactMap { down in
+      let event = CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: down)
+      event?.flags.formUnion(flags)
+      return event
     }
-    return true
   }
 
   // A click anywhere else, ⌘Tab or opening the main window closes it.
