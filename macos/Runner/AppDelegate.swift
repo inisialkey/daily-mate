@@ -126,10 +126,10 @@ final class MenuBar: NSObject, NSWindowDelegate {
         let id = call.arguments as? String ?? ""
         result(!NSRunningApplication.runningApplications(withBundleIdentifier: id).isEmpty)
       case "pressMediaKey":
-        result(Self.pressMediaKey(call.arguments as? String))
+        result(KeyPresser.pressMediaKey(call.arguments as? String))
       case "pressShortcut":
         let args = call.arguments as? [String: Any]
-        result(Self.pressShortcut(
+        result(KeyPresser.pressShortcut(
           keyCode: args?["keyCode"] as? Int,
           modifiers: args?["modifiers"] as? [String] ?? []))
       case "openAccessibilitySettings":
@@ -168,17 +168,22 @@ final class MenuBar: NSObject, NSWindowDelegate {
     return panel
   }
 
+  // A click anywhere else, ⌘Tab or opening the main window closes it.
+  func windowDidResignKey(_ notification: Notification) {
+    hide()
+  }
+}
+
+/// Posts key presses for the menu bar panel's media controls.
+enum KeyPresser {
   /// Presses a media key like F7–F9 do; the Now Playing app takes it.
   /// Posting events needs Privacy & Security > Accessibility, which the
   /// first press asks for. False when that grant is missing; macOS asks
   /// only once, so later refusals are silent unless the panel says so.
-  private static func pressMediaKey(_ name: String?) -> Bool {
+  static func pressMediaKey(_ name: String?) -> Bool {
     // NX_KEYTYPE_PLAY, _NEXT and _PREVIOUS from IOKit's ev_keymap.h.
     guard let key = ["playPause": 16, "next": 17, "previous": 18][name ?? ""] else { return true }
-    guard CGPreflightPostEventAccess() else {
-      CGRequestPostEventAccess()
-      return false
-    }
+    guard canPostEvents() else { return false }
     for down in [true, false] {
       let event = NSEvent.otherEvent(
         with: .systemDefined, location: .zero,
@@ -192,12 +197,9 @@ final class MenuBar: NSObject, NSWindowDelegate {
 
   /// Presses a key combination, such as a music app's global shortcut; its
   /// owner takes it before the frontmost app. Same permission as above.
-  private static func pressShortcut(keyCode: Int?, modifiers: [String]) -> Bool {
+  static func pressShortcut(keyCode: Int?, modifiers: [String]) -> Bool {
     guard let keyCode = keyCode, let key = CGKeyCode(exactly: keyCode) else { return false }
-    guard CGPreflightPostEventAccess() else {
-      CGRequestPostEventAccess()
-      return false
-    }
+    guard canPostEvents() else { return false }
     for event in shortcutEvents(keyCode: key, modifiers: modifiers) {
       event.post(tap: .cghidEventTap)
     }
@@ -225,9 +227,13 @@ final class MenuBar: NSObject, NSWindowDelegate {
     }
   }
 
-  // A click anywhere else, ⌘Tab or opening the main window closes it.
-  func windowDidResignKey(_ notification: Notification) {
-    hide()
+  /// Whether DailyMate may post events; without the grant, asks for it.
+  private static func canPostEvents() -> Bool {
+    guard CGPreflightPostEventAccess() else {
+      CGRequestPostEventAccess()
+      return false
+    }
+    return true
   }
 }
 
