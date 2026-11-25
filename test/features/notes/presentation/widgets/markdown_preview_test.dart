@@ -21,23 +21,24 @@ final Finder _webImage = find.byWidgetPredicate(
   (widget) => widget is Image && widget.image is NetworkImage,
 );
 
+/// The window channel's calls, as "method arguments".
+List<String> _windowCalls(WidgetTester tester) {
+  const channel = MethodChannel('dailymate/window');
+  final messenger = tester.binding.defaultBinaryMessenger;
+  final calls = <String>[];
+  messenger.setMockMethodCallHandler(
+    channel,
+    (call) async => calls.add('${call.method} ${call.arguments}'),
+  );
+  addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+  return calls;
+}
+
 void main() {
   testWidgets('a web image is never loaded: it is a link to the browser', (
     tester,
   ) async {
-    const channel = MethodChannel('dailymate/window');
-    final calls = <String>[];
-    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-      channel,
-      (call) async => calls.add('${call.method} ${call.arguments}'),
-    );
-    addTearDown(
-      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        channel,
-        null,
-      ),
-    );
-
+    final calls = _windowCalls(tester);
     await _pumpPreview(
       tester,
       'Our logo: ![Company logo](https://example.com/logo.png)',
@@ -48,12 +49,38 @@ void main() {
     expect(calls, ['openUrl https://example.com/logo.png']);
   });
 
-  testWidgets('a web image without a description shows its address', (
+  testWidgets('a web image inside a link opens the link', (tester) async {
+    final calls = _windowCalls(tester);
+    await _pumpPreview(
+      tester,
+      '[![Build](https://img.example.com/badge.png)](https://ci.example.com)',
+    );
+    expect(_webImage, findsNothing);
+
+    await tester.tap(find.text('Build'));
+    expect(calls, ['openUrl https://ci.example.com']);
+  });
+
+  testWidgets('a web image without alt text shows its title or address', (
     tester,
   ) async {
-    await _pumpPreview(tester, '![](http://example.com/logo.png)');
+    await _pumpPreview(
+      tester,
+      '![](https://example.com/logo.png "Company logo")\n\n'
+      '![](http://example.com/logo.png)',
+    );
     expect(_webImage, findsNothing);
+    expect(find.text('Company logo'), findsOneWidget);
     expect(find.text('http://example.com/logo.png'), findsOneWidget);
+  });
+
+  testWidgets('a broken embedded image shows nothing', (tester) async {
+    await _pumpPreview(
+      tester,
+      'Before ![Dot](data:image/png;base64,iVB) after',
+    );
+    expect(tester.takeException(), isNull);
+    expect(find.byType(Image), findsNothing);
   });
 
   testWidgets('an embedded image still shows', (tester) async {
