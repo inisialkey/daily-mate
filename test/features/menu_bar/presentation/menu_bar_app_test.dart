@@ -3,6 +3,7 @@ import 'package:daily_mate/core/di/service_locator.dart';
 import 'package:daily_mate/core/utils/dates.dart';
 import 'package:daily_mate/features/menu_bar/presentation/menu_bar_app.dart';
 import 'package:daily_mate/features/music/domain/music_player.dart';
+import 'package:daily_mate/features/tasks/domain/priority.dart';
 import 'package:daily_mate/features/tasks/domain/task_draft.dart';
 import 'package:daily_mate/features/tasks/domain/task_filter.dart';
 import 'package:daily_mate/features/tasks/domain/task_repository.dart';
@@ -51,7 +52,7 @@ void main() {
     expect(find.text('Nothing due today'), findsOneWidget);
 
     await tester.enterText(
-      find.widgetWithText(TextField, 'Add a task for today'),
+      find.widgetWithText(TextField, 'Add a task: besok 14:00 !1'),
       'Water the plants',
     );
     await tester.testTextInput.receiveAction(TextInputAction.done);
@@ -62,9 +63,62 @@ void main() {
       () => sl<TaskRepository>().tasks(const TaskFilter()),
     );
     expect(tasks!.single.title, 'Water the plants');
+    expect(find.byType(SnackBar), findsNothing);
     expect(tasks.single.dueDate, dateOnly(clock.now()));
     expect(find.text('Water the plants'), findsOneWidget);
-    expect(find.widgetWithText(TextField, 'Add a task for today'), findsOne);
+    expect(
+      find.widgetWithText(TextField, 'Add a task: besok 14:00 !1'),
+      findsOne,
+    );
+  });
+
+  testWidgets('reads the day, time and priority out of the text', (
+    tester,
+  ) async {
+    await pumpApp(tester, size: popover, app: const MenuBarApp());
+    final field = find.widgetWithText(TextField, 'Add a task: besok 14:00 !1');
+
+    await tester.enterText(field, 'Review PR besok 14:00 !1');
+    await tester.pump();
+    expect(find.textContaining('Tomorrow · '), findsOneWidget);
+    expect(find.textContaining(' · High'), findsOneWidget);
+
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    await settleAsync(tester);
+
+    final tasks = await tester.runAsync(
+      () => sl<TaskRepository>().tasks(const TaskFilter()),
+    );
+    final task = tasks!.single;
+    expect(task.title, 'Review PR');
+    expect(task.dueDate, addDays(dateOnly(clock.now()), 1));
+    expect(task.dueMinutes, 14 * 60);
+    expect(task.priority, Priority.high);
+    expect(find.textContaining('Tomorrow · '), findsNothing);
+    expect(find.text('Added “Review PR” to Tomorrow'), findsOneWidget);
+  });
+
+  testWidgets('"jam 12 malam" saves the task for after midnight', (
+    tester,
+  ) async {
+    await pumpApp(tester, size: popover, app: const MenuBarApp());
+
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Add a task: besok 14:00 !1'),
+      'Tidur jam 12 malam',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    await settleAsync(tester);
+
+    final tasks = await tester.runAsync(
+      () => sl<TaskRepository>().tasks(const TaskFilter()),
+    );
+    expect(tasks!.single.title, 'Tidur');
+    expect(tasks.single.dueDate, addDays(dateOnly(clock.now()), 1));
+    expect(tasks.single.dueMinutes, 0);
+    expect(find.text('Added “Tidur” to Tomorrow'), findsOneWidget);
   });
 
   testWidgets('opening a task asks the main window to show it', (

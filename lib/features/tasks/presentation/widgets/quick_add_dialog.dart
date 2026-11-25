@@ -14,14 +14,16 @@ import 'package:daily_mate/core/ui/pickers/time_menu_button.dart';
 import 'package:daily_mate/core/ui/widgets/menu_picker_button.dart';
 import 'package:daily_mate/core/utils/dates.dart';
 import 'package:daily_mate/features/tasks/domain/priority.dart';
+import 'package:daily_mate/features/tasks/domain/quick_add_parser.dart';
 import 'package:daily_mate/features/tasks/domain/task_draft.dart';
 import 'package:daily_mate/features/tasks/presentation/cubit/quick_add_cubit.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-/// ⌘N: capture a task without opening the full editor. Resolves to the new
-/// task's id, or null when cancelled.
+/// ⌘N: capture a task without opening the full editor. The title may carry
+/// its date, time and priority (`besok 14:00 !1`); the pickers show what was
+/// recognized. Resolves to the new task's id, or null when cancelled.
 Future<int?> showQuickAddDialog(BuildContext context, {DateTime? date}) =>
     showDialog<int>(
       context: context,
@@ -42,11 +44,35 @@ class QuickAddDialog extends StatefulWidget {
 
 class _QuickAddDialogState extends State<QuickAddDialog> {
   final _title = TextEditingController();
+
+  // What the pickers set. Tokens typed in the title take precedence until
+  // the user picks that field: the picker removes the token it replaces and
+  // from then on owns the field, so a later word of that kind stays text.
   late DateTime? _date = widget.date;
   int? _minutes;
   Priority _priority = Priority.none;
   RecurrenceRule? _recurrence;
   bool _saving = false;
+  QuickAddParse _parsed = const QuickAddParse(title: '');
+  bool _datePicked = false;
+  bool _timePicked = false;
+  bool _priorityPicked = false;
+
+  DateTime get _today => dateOnly(clock.now());
+
+  /// A time without a day is for the picked day, or today; past midnight
+  /// ("jam 12 malam") it is the day after, unless the user picked the day.
+  DateTime? get _effectiveDate => _datePicked && _date != null
+      ? _date
+      : _parsed.dueDate(_date ?? (_parsed.minutes == null ? null : _today));
+  int? get _effectiveMinutes => _parsed.minutes ?? _minutes;
+  Priority get _effectivePriority => _parsed.priority ?? _priority;
+
+  @override
+  void initState() {
+    super.initState();
+    _title.addListener(_reparse);
+  }
 
   @override
   void dispose() {
@@ -54,25 +80,70 @@ class _QuickAddDialogState extends State<QuickAddDialog> {
     super.dispose();
   }
 
+  void _reparse() {
+    final parsed = parseQuickAdd(
+      _title.text,
+      today: _today,
+      dates: !_datePicked,
+      times: !_timePicked,
+      priorities: !_priorityPicked,
+    );
+    setState(() => _parsed = parsed);
+  }
+
+  /// Cuts the named kinds of token out of the title, keeping any word the
+  /// other tokens share with them ("jam 8 malam minggu"), and re-parses it.
+  void _dropTokens({
+    bool date = false,
+    bool time = false,
+    bool priority = false,
+  }) {
+    final p = _parsed;
+    final drop = [
+      if (date) p.dateRange,
+      if (time) p.timeRange,
+      if (priority) p.priorityRange,
+    ].nonNulls;
+    final keep = [
+      if (!date) p.dateRange,
+      if (!time) p.timeRange,
+      if (!priority) p.priorityRange,
+    ].nonNulls;
+    final text = drop.isEmpty
+        ? _title.text
+        : removeTokens(_title.text, drop, keep: keep);
+    if (text == _title.text) {
+      _reparse();
+      return;
+    }
+    _title.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+
+  /// The day for the time and repeat pickers to keep once the typed words
+  /// are gone: the typed day, else the picked one, else today. Without the
+  /// after-midnight shift, which belongs to the typed time ("jam 12 malam").
+  void _keepDay() => _date = _parsed.date ?? _date ?? _today;
+
   Future<void> _submit() async {
-    final title = _title.text.trim();
+    final title = _parsed.title.trim();
     if (title.isEmpty || _saving) return;
     setState(() => _saving = true);
     final cubit = context.read<QuickAddCubit>();
     final navigator = Navigator.of(context);
     var id = 0;
-    final date = _date;
-    final where = date == null
-        ? ''
-        : ' to ${formatRelativeDay(date, dateOnly(clock.now()))}';
+    final date = _effectiveDate;
+    final where = date == null ? '' : ' to ${formatRelativeDay(date, _today)}';
     final added = await runAction(
       context,
       () async => id = await cubit.createTask(
         TaskDraft(
           title: title,
           dueDate: date,
-          dueMinutes: _minutes,
-          priority: _priority,
+          dueMinutes: _effectiveMinutes,
+          priority: _effectivePriority,
           recurrence: _recurrence,
         ),
       ),
@@ -89,6 +160,8 @@ class _QuickAddDialogState extends State<QuickAddDialog> {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
+    final date = _effectiveDate;
+    final priority = _effectivePriority;
     return Dialog(
       child: SizedBox(
         width: 560,
@@ -117,7 +190,7 @@ class _QuickAddDialogState extends State<QuickAddDialog> {
                       autofocus: true,
                       style: context.text.titleMedium,
                       decoration: bareDecoration(
-                        hintText: 'New task',
+                        hintText: 'New task, e.g. Review PR besok 14:00 !1',
                         hintStyle: context.text.titleMedium?.copyWith(
                           color: palette.textMuted,
                           fontWeight: FontWeight.w400,
@@ -135,31 +208,50 @@ class _QuickAddDialogState extends State<QuickAddDialog> {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   DateMenuButton(
-                    date: _date,
+                    date: date,
                     placeholder: 'No date',
-                    onChanged: (date) => setState(() {
-                      _date = date;
-                      if (date == null) {
-                        _minutes = null;
-                        _recurrence = null;
-                      }
-                    }),
+                    onChanged: (date) {
+                      setState(() {
+                        _date = date;
+                        _datePicked = true;
+                        if (date == null) {
+                          _minutes = null;
+                          _recurrence = null;
+                        }
+                      });
+                      // A time needs a day, so it goes with the date; a
+                      // time typed later still counts (for today).
+                      _dropTokens(date: true, time: date == null);
+                    },
                   ),
-                  if (_date != null)
+                  if (date != null)
                     TimeMenuButton(
-                      minutes: _minutes,
-                      onChanged: (m) => setState(() => _minutes = m),
+                      minutes: _effectiveMinutes,
+                      onChanged: (m) {
+                        setState(() {
+                          _keepDay();
+                          _minutes = m;
+                          _timePicked = true;
+                        });
+                        _dropTokens(time: true);
+                      },
                     ),
                   MenuPickerButton(
                     icon: CupertinoIcons.flag,
-                    label: _priority == Priority.none
+                    label: priority == Priority.none
                         ? 'Priority'
-                        : _priority.label,
-                    placeholder: _priority == Priority.none,
+                        : priority.label,
+                    placeholder: priority == Priority.none,
                     menuChildren: [
                       for (final p in Priority.values.reversed)
                         MenuItemButton(
-                          onPressed: () => setState(() => _priority = p),
+                          onPressed: () {
+                            setState(() {
+                              _priority = p;
+                              _priorityPicked = true;
+                            });
+                            _dropTokens(priority: true);
+                          },
                           child: Text(p.label),
                         ),
                     ],
@@ -168,7 +260,9 @@ class _QuickAddDialogState extends State<QuickAddDialog> {
                     rule: _recurrence,
                     onChanged: (rule) => setState(() {
                       _recurrence = rule;
-                      if (rule != null) _date ??= dateOnly(clock.now());
+                      // A repeat needs a day, even if the typed word that
+                      // gave it is deleted later.
+                      if (rule != null) _keepDay();
                     }),
                   ),
                 ],
