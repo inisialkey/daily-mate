@@ -17,7 +17,7 @@ class RunnerTests: XCTestCase {
   // A real arrow press carries NumericPad and SecondaryFn; without them a
   // global shortcut on an arrow (MixMusic's next/previous) never fires.
   func testShortcutOnAnArrowKeepsTheArrowFlags() {
-    let events = MenuBar.shortcutEvents(keyCode: 124, modifiers: ["command", "control", "option"])
+    let events = KeyPresser.shortcutEvents(keyCode: 124, modifiers: ["command", "control", "option"])
 
     XCTAssertEqual(events.map { $0.type }, [.keyDown, .keyUp])
     for event in events {
@@ -30,7 +30,7 @@ class RunnerTests: XCTestCase {
   }
 
   func testShortcutOnALetterHasOnlyItsModifiers() {
-    let events = MenuBar.shortcutEvents(keyCode: 35, modifiers: ["shift", "bogus"])
+    let events = KeyPresser.shortcutEvents(keyCode: 35, modifiers: ["shift", "bogus"])
 
     for event in events {
       XCTAssertTrue(event.flags.contains(.maskShift))
@@ -42,13 +42,13 @@ class RunnerTests: XCTestCase {
   // Only what is checked before the Accessibility grant: past that, a press
   // posts real events, or asks for the grant.
   func testAnUnknownMediaKeyIsNotARefusal() {
-    XCTAssertTrue(MenuBar.pressMediaKey(nil))
-    XCTAssertTrue(MenuBar.pressMediaKey("bogus"))
+    XCTAssertTrue(KeyPresser.pressMediaKey(nil))
+    XCTAssertTrue(KeyPresser.pressMediaKey("bogus"))
   }
 
   func testAShortcutWithoutAValidKeyCodeIsRefused() {
-    XCTAssertFalse(MenuBar.pressShortcut(keyCode: nil, modifiers: ["command"]))
-    XCTAssertFalse(MenuBar.pressShortcut(keyCode: -1, modifiers: []))
-    XCTAssertFalse(MenuBar.pressShortcut(keyCode: 65_536, modifiers: []))
+    XCTAssertFalse(KeyPresser.pressShortcut(keyCode: nil, modifiers: ["command"]))
+    XCTAssertFalse(KeyPresser.pressShortcut(keyCode: -1, modifiers: []))
+    XCTAssertFalse(KeyPresser.pressShortcut(keyCode: 65_536, modifiers: []))
   }
 }
