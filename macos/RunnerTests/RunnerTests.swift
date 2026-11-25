@@ -38,4 +38,17 @@ class RunnerTests: XCTestCase {
       XCTAssertFalse(event.flags.contains(.maskCommand))
     }
   }
+
+  // Only what is checked before the Accessibility grant: past that, a press
+  // posts real events, or asks for the grant.
+  func testAnUnknownMediaKeyIsNotARefusal() {
+    XCTAssertTrue(MenuBar.pressMediaKey(nil))
+    XCTAssertTrue(MenuBar.pressMediaKey("bogus"))
+  }
+
+  func testAShortcutWithoutAValidKeyCodeIsRefused() {
+    XCTAssertFalse(MenuBar.pressShortcut(keyCode: nil, modifiers: ["command"]))
+    XCTAssertFalse(MenuBar.pressShortcut(keyCode: -1, modifiers: []))
+    XCTAssertFalse(MenuBar.pressShortcut(keyCode: 65_536, modifiers: []))
+  }
 }
