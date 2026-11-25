@@ -30,7 +30,8 @@ end of any turn that edited a file. Fix the cause; never weaken the check to pas
   Flutter engine (`menuBarMain`) that shares the drift database isolate.
   Installed to `/Applications/DailyMate.app` with `scripts/install.sh` (2026-10-22).
   The panel also shows MixMusic's track with media keys (installed, works, 2026-10-24).
-- Last green at: "Native tests in the gate", 207 tests + 3 native (2026-11-24)
+  Quick add (panel and ⌘N) reads `besok 14:00 !1`-style tokens: `quick_add_parser.dart` (2026-11-24).
+- Last green at: "Natural-language quick add", 350 tests + 3 native (2026-11-25)
 - Blocked by: —
 
 ## Commands the agent cannot guess

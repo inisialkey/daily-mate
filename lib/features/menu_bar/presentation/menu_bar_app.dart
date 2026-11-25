@@ -11,9 +11,12 @@ import 'package:daily_mate/core/ui/action_runner.dart';
 import 'package:daily_mate/core/ui/formatting.dart';
 import 'package:daily_mate/core/ui/widgets/empty_state.dart';
 import 'package:daily_mate/core/ui/widgets/section_header.dart';
+import 'package:daily_mate/core/utils/dates.dart';
 import 'package:daily_mate/features/music/domain/music_player.dart';
 import 'package:daily_mate/features/prayer/presentation/cubit/prayer_cubit.dart';
 import 'package:daily_mate/features/prayer/presentation/widgets/next_prayer_card.dart';
+import 'package:daily_mate/features/tasks/domain/priority.dart';
+import 'package:daily_mate/features/tasks/domain/quick_add_parser.dart';
 import 'package:daily_mate/features/tasks/domain/task.dart';
 import 'package:daily_mate/features/tasks/domain/task_draft.dart';
 import 'package:daily_mate/features/tasks/presentation/cubit/today_tasks_cubit.dart';
@@ -142,7 +145,9 @@ class _Header extends StatelessWidget {
   );
 }
 
-/// Enter saves a task due today and keeps focus for the next one.
+/// Enter saves a task, due today unless the text names a day
+/// (`besok 14:00 !1`), and keeps focus for the next one. A line under the
+/// field shows what was recognized.
 class _QuickAddField extends StatefulWidget {
   const _QuickAddField({required this.today});
 
@@ -156,16 +161,42 @@ class _QuickAddFieldState extends State<_QuickAddField> {
   final _controller = TextEditingController();
   final _focus = FocusNode();
 
+  QuickAddParse _parse(String text) => parseQuickAdd(text, today: widget.today);
+
   Future<void> _submit(String text) async {
     if (text.trim().isEmpty) return;
     final cubit = context.read<TodayTasksCubit>();
+    final parsed = _parse(text);
+    final date = parsed.dueDate(widget.today)!;
     final saved = await runAction(
       context,
-      () => cubit.createTask(TaskDraft(title: text, dueDate: widget.today)),
+      () => cubit.createTask(
+        TaskDraft(
+          title: parsed.title,
+          dueDate: date,
+          dueMinutes: parsed.minutes,
+          priority: parsed.priority ?? Priority.none,
+        ),
+      ),
+      // The panel lists only today, so say where any other day's task went.
+      success: isSameDay(date, widget.today)
+          ? null
+          : 'Added ${quoted(parsed.title.trim())} to '
+                '${formatRelativeDay(date, widget.today)}',
     );
     if (!saved || !mounted) return;
     _controller.clear();
     _focus.requestFocus();
+  }
+
+  String _summary(QuickAddParse parsed) {
+    final minutes = parsed.minutes;
+    final priority = parsed.priority;
+    return [
+      formatRelativeDay(parsed.dueDate(widget.today)!, widget.today),
+      if (minutes != null) formatMinutesOfDay(context, minutes),
+      if (priority != null) priority.label,
+    ].join(' · ');
   }
 
   @override
@@ -176,23 +207,46 @@ class _QuickAddFieldState extends State<_QuickAddField> {
   }
 
   @override
-  Widget build(BuildContext context) => TextField(
-    controller: _controller,
-    focusNode: _focus,
-    autofocus: true,
-    style: context.text.bodyMedium,
-    decoration: InputDecoration(
-      hintText: 'Add a task for today',
-      prefixIcon: Icon(
-        CupertinoIcons.plus,
-        size: IconSizes.md,
-        color: context.colors.primary,
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      TextField(
+        controller: _controller,
+        focusNode: _focus,
+        autofocus: true,
+        style: context.text.bodyMedium,
+        decoration: InputDecoration(
+          hintText: 'Add a task: besok 14:00 !1',
+          prefixIcon: Icon(
+            CupertinoIcons.plus,
+            size: IconSizes.md,
+            color: context.colors.primary,
+          ),
+          hintStyle: context.text.bodyMedium?.copyWith(
+            color: context.palette.textMuted,
+          ),
+        ),
+        onSubmitted: (text) => unawaited(_submit(text)),
       ),
-      hintStyle: context.text.bodyMedium?.copyWith(
-        color: context.palette.textMuted,
+      ValueListenableBuilder(
+        valueListenable: _controller,
+        builder: (context, value, _) {
+          final parsed = _parse(value.text);
+          if (!parsed.hasTokens) return const SizedBox.shrink();
+          return Padding(
+            padding: const EdgeInsets.only(left: Space.sm, top: Space.xs),
+            child: Text(
+              _summary(parsed),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: context.text.bodySmall?.copyWith(
+                color: context.palette.textMuted,
+              ),
+            ),
+          );
+        },
       ),
-    ),
-    onSubmitted: (text) => unawaited(_submit(text)),
+    ],
   );
 }
 
