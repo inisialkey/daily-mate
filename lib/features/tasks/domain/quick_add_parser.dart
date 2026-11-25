@@ -70,16 +70,20 @@ const _weekdays = <String, int>{
 
 // "minggu" is also "week": not Sunday after a count or "tiap"/"per"/"akhir"
 // ("2 minggu", "tiap minggu"), nor before "depan"/"ini"/"ke-3" and the like
-// unless "hari" or "malam" says it is the day ("hari minggu depan").
+// unless the word "hari" or "malam" says it is the day ("hari minggu
+// depan"); not "sehari", and not a count of days ("3 hari minggu depan").
 const _weekWordBefore =
     'tiap|setiap|per|beberapa|satu|dua|tiga|empat|lima|enam|tujuh|delapan|'
     'sembilan|sepuluh|akhir|awal|pertengahan';
 const _weekWordAfter =
     'depan|ini|lalu|lagi|ke|kemarin|berikutnya|terakhir|pertama|kedua|'
     'ketiga|keempat';
+const _dayWord = r'(?<![\p{L}\p{N}])(?:hari|malam)\s+';
 const _sunday =
-    r'(?<=(?:hari|malam)\s+)minggu|'
-    r'(?<!(?:hari|malam)\s+)(?<!\p{N}\s+)(?<!(?:^|[^\p{L}\p{N}])(?:'
+    // The 8 in "jam 8 malam minggu" is an hour, not a count.
+    '(?<=$_dayWord)(?<!\\p{N}\\s+hari\\s+)minggu|'
+    '(?<!$_dayWord)'
+    r'(?<!\p{N}\s+)(?<!(?:^|[^\p{L}\p{N}])(?:'
     '$_weekWordBefore'
     r')\s+)minggu(?!\s+(?:'
     '$_weekWordAfter'
@@ -87,11 +91,20 @@ const _sunday =
 const _weekdayNames =
     "senin|selasa|rabu|kamis|jum['’]?at|sabtu|ahad|$_sunday|"
     'monday|tuesday|wednesday|thursday|friday|saturday|sunday';
+const _plainWeekdays =
+    "senin|selasa|rabu|kamis|jum['’]?at|sabtu|minggu|ahad|"
+    'monday|tuesday|wednesday|thursday|friday|saturday|sunday';
 
-// "tiap senin", "setiap malam jumat", "every Monday" repeat: not a date.
+// "tiap senin", "setiap malam jumat", "every other Monday" repeat, and so
+// does every day listed after them ("setiap senin dan kamis",
+// "tiap senin, rabu, jumat"): not a date.
+const _repeatGap = r'(?:(?:hari|malam|other|second|2nd)\s+)?';
+const _listedDay =
+    '(?:$_plainWeekdays)'
+    r'(?:\s*[,/&]\s*|\s+(?:dan|and|atau|or)\s+)';
 const _notRepeating =
     r'(?<!(?:^|[^\p{L}\p{N}])(?:tiap|setiap|every|each)\s+'
-    r'(?:(?:hari|malam)\s+)?)';
+    '$_repeatGap(?:$_listedDay$_repeatGap)*)';
 
 // A weekday takes its modifier along: "jumat depan" and "next Friday" are
 // in next week, "jumat ini" and "this Friday" are the coming one (today on
@@ -107,14 +120,22 @@ final _datePattern = RegExp(
 
 // "jam 14", "pukul 9.30", "jam 14:00", or a bare "14:00", each optionally
 // followed by the part of the day ("jam 3 sore"). A bare number is never a
-// time, and the dot form needs the word ("versi 2.10").
+// time, and the dot form needs the word ("versi 2.10"). Not a time either:
+// a duration ("1 jam 15 menit"), either end of a range ("10:00-11:00",
+// "jam 10 sampai 12"), or a Quran verse ("QS 18:10", "Al-Kahfi 18:10").
 const _partOfDay = r'(?:\s+(pagi|siang|sore|malam)(?![\p{L}\p{N}]))?';
+const _rangeLink = r'(?:[-–—]|sampai|hingga|s/d|s\.d\.?|to|until|till)';
+const _notRangeEnd = '(?<!\\d\\s*$_rangeLink\\s*)';
+const _notRangeStart = '(?!\\s*$_rangeLink\\s*\\d)';
+const _notVerse = r'(?<!(?:^|[^\p{L}\p{N}])(?:q\.?\s?s\.?|surah|al-\p{L}+)\s*)';
 final _timePattern = RegExp(
-  '$_before(?:'
-  r'(?:jam|pukul)\s+(\d{1,2})(?:[:.](\d{2}))?(?![\p{L}\p{N}]|[:.]\d)'
-  '$_partOfDay|'
+  '$_before$_notRangeEnd(?:'
+  r'(?<!\p{N}\s+)(?:jam|pukul)\s+(\d{1,2})(?:[:.](\d{2}))?'
+  r'(?![\p{L}\p{N}]|[:.]\d)(?!\s+menit)'
+  '$_notRangeStart$_partOfDay|'
+  '$_notVerse'
   r'(?<![:.])(\d{1,2}):(\d{2})(?![\p{L}\p{N}]|[:.]\d)'
-  '$_partOfDay)',
+  '$_notRangeStart$_partOfDay)',
   caseSensitive: false,
   unicode: true,
 );
@@ -230,7 +251,8 @@ int _clockHour(int hour, String? partOfDay) => switch (partOfDay) {
   _ => hour,
 };
 
-/// [text] without [ranges], whitespace collapsed where they were cut out.
+/// [text] without [ranges], whitespace collapsed where they were cut out
+/// and the punctuation that went with them dropped (see [_join]).
 /// Ranges may overlap: in "jam 8 malam minggu" the time and the date share
 /// "malam". Text inside [keep] stays, so dropping one token never takes a
 /// word another token still needs.
@@ -260,11 +282,41 @@ String removeTokens(
   }
   var result = text;
   for (final r in merged.reversed) {
-    final before = result.substring(0, r.start).trimRight();
-    final after = result.substring(r.end).trimLeft();
-    result = before.isEmpty || after.isEmpty
-        ? '$before$after'
-        : '$before $after';
+    result = _join(result.substring(0, r.start), result.substring(r.end));
   }
   return result.trim();
+}
+
+const _closing = {'(': ')', '[': ']', '{': '}'};
+final _separatorAtEnd = RegExp(r'(?:[,;]|\s[-–—])$');
+final _separatorAtStart = RegExp(r'^(?:[,;]|[-–—](?=\s|$))');
+
+/// The text on either side of a cut, put back together. The brackets the
+/// token sat in go ("Rapat (besok)"), and of the separators around it at
+/// most one stays, and only between two words: "besok, 14:00" leaves
+/// nothing, "Meeting besok, then dinner" leaves "Meeting, then dinner".
+String _join(String before, String after) {
+  var b = before.trimRight();
+  var a = after.trimLeft();
+  if (b.isNotEmpty && a.isNotEmpty && _closing[b[b.length - 1]] == a[0]) {
+    b = b.substring(0, b.length - 1).trimRight();
+    a = a.substring(1).trimLeft();
+  }
+  String? separator;
+  final end = _separatorAtEnd.firstMatch(b);
+  if (end != null) {
+    separator = end[0]!.trim();
+    b = b.substring(0, end.start).trimRight();
+  }
+  final start = _separatorAtStart.firstMatch(a);
+  if (start != null) {
+    separator ??= start[0];
+    a = a.substring(start.end).trimLeft();
+  }
+  if (b.isEmpty || a.isEmpty) return '$b$a';
+  return switch (separator) {
+    null => '$b $a',
+    ',' || ';' => '$b$separator $a',
+    _ => '$b $separator $a',
+  };
 }

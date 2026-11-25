@@ -269,6 +269,26 @@ void main() {
       'Standup each friday',
       'Ronda tiap malam minggu',
       'Pengajian setiap malam jumat',
+      'Setiap Senin dan Kamis olahraga',
+      'Piket tiap senin, rabu, jumat',
+      'Gym every Monday and Thursday',
+      'Every other Monday standup',
+      'Ronda setiap malam jumat dan malam minggu',
+      'Cuti sehari minggu depan',
+      'Libur 3 hari minggu depan',
+      'Lari 1 jam 15 menit',
+      'Selesai dalam 2 jam 3 menit',
+      'Belajar dua jam 15 menit',
+      'Baca QS 18:10',
+      'Baca QS. 18:10',
+      'Hafalan Q.S. 18:10',
+      'Baca Al-Kahfi 18:10',
+      'Tadarus surah 2:25',
+      'Meeting 10:00-11:00',
+      'Meeting 10:00 - 11:00',
+      'Rapat jam 10-12',
+      'Rapat jam 10 sampai 12',
+      'Kerja 9:00 to 17:00',
       'Ruang 1:20:30',
       'Senindo meeting',
       'Besoknya libur',
@@ -295,6 +315,31 @@ void main() {
     final none = parseQuickAdd('Fix !1', today: today, priorities: false);
     expect(none.title, 'Fix !1');
     expect(none.hasTokens, isFalse);
+  });
+
+  test('a duration or an open range keeps its start time', () {
+    final p = parse('Rapat 1 jam pukul 10');
+    expect(p.title, 'Rapat 1 jam');
+    expect(p.minutes, 10 * 60);
+    final open = parse('Rapat jam 10 sampai selesai');
+    expect(open.title, 'Rapat sampai selesai');
+    expect(open.minutes, 10 * 60);
+  });
+
+  group('punctuation around a cut-out token', () {
+    for (final (text, title) in [
+      ('Review PR besok, 14:00', 'Review PR'),
+      ('Call mom, besok', 'Call mom'),
+      ('Besok, call mom', 'call mom'),
+      ('Meeting besok, then dinner', 'Meeting, then dinner'),
+      ('Call mom, besok, then dinner', 'Call mom, then dinner'),
+      ('Ujian minggu, 3 Des', 'Ujian, 3 Des'),
+      ('Rapat (besok)', 'Rapat'),
+      ('Rapat tim - besok', 'Rapat tim'),
+      ('Rapat besok - agenda', 'Rapat - agenda'),
+    ]) {
+      test(text, () => expect(parse(text).title, title));
+    }
   });
 
   test('text without tokens is kept as typed', () {
