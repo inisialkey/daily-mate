@@ -66,6 +66,7 @@ class MarkdownPreview extends StatelessWidget {
       onTapLink: (_, href, _) {
         if (href != null) unawaited(WindowChannel.openUrl(href));
       },
+      imageBuilder: (uri, _, alt) => _image(uri, alt, style.p?.merge(style.a)),
       checkboxBuilder: (checked) => Padding(
         padding: const EdgeInsets.only(right: Space.sm),
         child: Icon(
@@ -75,6 +76,69 @@ class MarkdownPreview extends StatelessWidget {
           size: IconSizes.md,
           color: checked ? colors.primary : colors.outline,
           semanticLabel: checked ? 'Done' : 'Not done',
+        ),
+      ),
+    );
+  }
+}
+
+/// A note never loads an image from the web: the app may connect out (for
+/// MixMusic's covers in the menu bar panel), and a pasted image would tell
+/// its server whenever the note is read. A web image is a link instead. An
+/// embedded (`data:`) image needs no connection; a file path shows nothing,
+/// as before, since the sandbox keeps the app out of your files.
+Widget _image(Uri uri, String? alt, TextStyle? linkStyle) {
+  if (uri.isScheme('http') || uri.isScheme('https')) {
+    return _WebImageLink(uri: uri, alt: alt, style: linkStyle);
+  }
+  final data = uri.data;
+  if (data != null && data.mimeType.startsWith('image/')) {
+    return Image.memory(
+      data.contentAsBytes(),
+      errorBuilder: (_, _, _) => const SizedBox.shrink(),
+    );
+  }
+  return const SizedBox.shrink();
+}
+
+/// A web image's description, or else its address, opening the image in the
+/// default browser.
+class _WebImageLink extends StatelessWidget {
+  const _WebImageLink({required this.uri, required this.alt, this.style});
+
+  final Uri uri;
+  final String? alt;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) {
+    final description = alt?.trim() ?? '';
+    return Semantics(
+      link: true,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => unawaited(WindowChannel.openUrl(uri.toString())),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                CupertinoIcons.photo,
+                size: IconSizes.md,
+                color: style?.color,
+              ),
+              const SizedBox(width: Space.xs),
+              Flexible(
+                child: Text(
+                  description.isEmpty ? uri.toString() : description,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: style,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
